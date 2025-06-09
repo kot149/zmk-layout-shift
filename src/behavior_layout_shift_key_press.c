@@ -84,7 +84,7 @@ static int on_layout_shift_key_press_binding_pressed(struct zmk_behavior_binding
     uint32_t original_keycode = binding->param1;
     uint32_t mapped_keycode = lookup_mapped_keycode(original_keycode);
 
-    LOG_ERR("LAYOUT_SHIFT: Input keycode 0x%08X -> Mapped keycode 0x%08X", original_keycode, mapped_keycode);
+    LOG_DBG("LAYOUT_SHIFT: Input keycode 0x%08X -> Mapped keycode 0x%08X", original_keycode, mapped_keycode);
 
     // Raise the mapped keycode event
     return raise_zmk_keycode_state_changed_from_encoded(
@@ -99,7 +99,7 @@ static int on_layout_shift_key_press_binding_released(struct zmk_behavior_bindin
     uint32_t original_keycode = binding->param1;
     uint32_t mapped_keycode = lookup_mapped_keycode(original_keycode);
 
-    LOG_ERR("LAYOUT_SHIFT: Released input keycode 0x%08X -> Mapped keycode 0x%08X", original_keycode, mapped_keycode);
+    LOG_DBG("LAYOUT_SHIFT: Released input keycode 0x%08X -> Mapped keycode 0x%08X", original_keycode, mapped_keycode);
 
     // Release the mapped keycode
     return raise_zmk_keycode_state_changed_from_encoded(
