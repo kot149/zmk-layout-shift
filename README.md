@@ -24,7 +24,7 @@ Optionally, you can `#include` [`layout_shift_overlay.dtsi`](dts/layout_shift_ov
 - ✅ `&kp` overlay
 - ✅ JIS keyboard layout translation map
 - ✅ `&tog_ls`, `&tog_ls_on`, `&tog_ls_off` behavior
-- 🚧 Save layout shift state between reboots
+- ✅ Save layout shift state between reboots
 - 🚧 Support for other layouts
 
 ## List of Supported Layouts
@@ -110,4 +110,18 @@ Example:
         };
     };
 };
+```
+
+## Configuration
+
+### Persistent State
+
+The layout shift state can be configured to persist between reboots using the following Kconfig option:
+
+- `CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE` (default: `y`): Enable persistent storage of layout shift state across reboots
+
+When enabled, the layout shift state is automatically saved to flash memory whenever it changes and restored on boot. To disable persistent state and always start with layout shift off, add the following to your configuration:
+
+```
+CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE=n
 ```

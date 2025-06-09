@@ -9,6 +9,14 @@ config LAYOUT_SHIFT
 
 if LAYOUT_SHIFT
 
+config LAYOUT_SHIFT_PERSISTENT_STATE
+    bool "Layout Shift Persistent State"
+    default y
+    select SETTINGS
+    help
+      Enable persistent storage of layout shift state across reboots.
+      This feature requires CONFIG_SETTINGS to be enabled.
+
 config LAYOUT_SHIFT_LOG_LEVEL
     int "Layout Shift Log Level"
     default 3

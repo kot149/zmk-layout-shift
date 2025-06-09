@@ -3,6 +3,7 @@
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/settings/settings.h>
 #include <string.h>
 #include <drivers/behavior.h>
 #include <zmk/behavior.h>
@@ -25,6 +26,33 @@ struct behavior_layout_shift_toggle_data {};
 // Global layout shift state
 static bool layout_shift_active = false;
 
+#if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
+static void layout_shift_save_work_handler(struct k_work *work) {
+    settings_save_one("layout_shift/state", &layout_shift_active, sizeof(layout_shift_active));
+    LOG_DBG("Saved layout shift state: %d", layout_shift_active);
+}
+
+static struct k_work_delayable layout_shift_save_work;
+
+static int layout_shift_settings_load_cb(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg) {
+    const char *next;
+    if (settings_name_steq(name, "state", &next) && !next) {
+        if (len != sizeof(layout_shift_active)) {
+            return -EINVAL;
+        }
+
+        int rc = read_cb(cb_arg, &layout_shift_active, sizeof(layout_shift_active));
+        if (rc >= 0) {
+            LOG_INF("Loaded layout shift state: %d", layout_shift_active);
+        }
+        return MIN(rc, 0);
+    }
+    return -ENOENT;
+}
+
+SETTINGS_STATIC_HANDLER_DEFINE(layout_shift, "layout_shift", NULL, layout_shift_settings_load_cb, NULL, NULL);
+#endif // IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
+
 // Function to get current layout shift state
 bool zmk_layout_shift_is_active(void) {
     return layout_shift_active;
@@ -35,6 +63,11 @@ void zmk_layout_shift_set_active(bool active) {
     if (layout_shift_active != active) {
         layout_shift_active = active;
         LOG_INF("Layout shift %s", active ? "activated" : "deactivated");
+        
+#if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
+        // Debounce saving to flash to reduce wear
+        k_work_reschedule(&layout_shift_save_work, K_MSEC(CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE));
+#endif
     }
 }
 
@@ -79,6 +112,11 @@ static const struct behavior_driver_api behavior_layout_shift_toggle_driver_api 
 
 static int layout_shift_toggle_init(const struct device *dev) {
     layout_shift_active = false;
+    
+#if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
+    k_work_init_delayable(&layout_shift_save_work, layout_shift_save_work_handler);
+#endif
+    
     LOG_INF("Layout Shift Toggle Behavior Initialized!");
     return 0;
 }
