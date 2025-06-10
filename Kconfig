@@ -35,16 +35,3 @@ config LAYOUT_SHIFT_PERSISTENT_STATE
     help
       Enable persistent storage of layout shift state across reboots.
       This feature requires CONFIG_SETTINGS to be enabled.
-
-config LAYOUT_SHIFT_LOG_LEVEL
-    int "Layout Shift Log Level"
-    default 3
-    help
-      Set the log level for the Layout Shift module.
-      0: OFF
-      1: ERROR
-      2: WARNING
-      3: INFO
-      4: DEBUG
-
-endif # LAYOUT_SHIFT
