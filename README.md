@@ -15,7 +15,7 @@ This module defines the following behaviors:
 - `&tog_ls_on`: Turns on the layout shift state
 - `&tog_ls_off`: Turns off the layout shift state
 
-Optionally, you can `#include` [`layout_shift.overlay`](dts/layout_shift.overlay) to override the `&kp` behavior with `&kpls`, so that you can use layout shift without modifying your keymap, while preserving [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) compatibility.
+Optionally, you can `#include` [`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) to override the `&kp` behavior with `&kpls`, so that you can use layout shift without modifying your keymap, while preserving [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) compatibility.
 
 ## List of Supported Layouts
 
@@ -95,13 +95,13 @@ manifest:
    };
    ```
 
-### 3. Include the Overlay (Optional)
+### 3. Override `&kp` Behavior (Optional)
 
-You can also `#include` [`layout_shift.overlay`](dts/layout_shift.overlay) to override the `&kp` behavior with `&kpls`, so that you can use layout shift without modifying your keymap, while preserving [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) compatibility.
+You can also `#include` [`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) to override the `&kp` behavior with `&kpls`, so that you can use layout shift without modifying your keymap, while preserving [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) compatibility.
 
 Example:
 ```dts
-#include <layout_shift.overlay>
+#include <layout_shift_kp_override.dtsi>
 
 / {
     keymap {
