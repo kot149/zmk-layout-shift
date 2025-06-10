@@ -35,3 +35,5 @@ config LAYOUT_SHIFT_PERSISTENT_STATE
     help
       Enable persistent storage of layout shift state across reboots.
       This feature requires CONFIG_SETTINGS to be enabled.
+
+endif
