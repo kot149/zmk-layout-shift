@@ -126,6 +126,8 @@ static int layout_shift_toggle_init(const struct device *dev) {
      strcmp(str, "off") == 0 ? TOGGLE_MODE_OFF : \
      TOGGLE_MODE_FLIP)
 
+// Only define behavior instances if devicetree nodes exist
+#if DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT)
 #define LAYOUT_SHIFT_TOGGLE_INST(n) \
     static struct behavior_layout_shift_toggle_data behavior_layout_shift_toggle_data_##n = {}; \
     static const struct behavior_layout_shift_toggle_config behavior_layout_shift_toggle_config_##n = { \
@@ -138,3 +140,4 @@ static int layout_shift_toggle_init(const struct device *dev) {
                             &behavior_layout_shift_toggle_driver_api);
 
 DT_INST_FOREACH_STATUS_OKAY(LAYOUT_SHIFT_TOGGLE_INST)
+#endif

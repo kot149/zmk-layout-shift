@@ -114,7 +114,8 @@ static int layout_shift_key_press_init(const struct device *dev) {
     return 0;
 }
 
-// Define behavior instance
+// Define behavior instance only if devicetree node exists
+#if DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT)
 static struct behavior_layout_shift_key_press_data behavior_layout_shift_key_press_data_0 = {};
 static const struct behavior_layout_shift_key_press_config behavior_layout_shift_key_press_config_0 = {};
 
@@ -122,3 +123,4 @@ BEHAVIOR_DT_INST_DEFINE(0, layout_shift_key_press_init, NULL,
                         &behavior_layout_shift_key_press_data_0, &behavior_layout_shift_key_press_config_0,
                         POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,
                         &behavior_layout_shift_key_press_driver_api);
+#endif
