@@ -52,9 +52,9 @@ manifest:
    #include <layout_shift.dtsi>
    ```
 
-2. Select the target keyboard layout by setting one in your configuration file (e.g., `your_keyboard.conf`):
+2. Select the target layout by selecting one from [`LAYOUT_SHIFT_TARGET_LAYOUT` choice](Kconfig) in your configuration file (e.g., `your_keyboard.conf`):
    ```kconfig
-   # Japanese (JIS) layout (default)
+   # Japanese (JIS) layout
    CONFIG_LAYOUT_SHIFT_TARGET_JIS=y
 
    # or
@@ -62,8 +62,6 @@ manifest:
    # Dvorak layout
    CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y
    ```
-
-   See [Kconfig](Kconfig) for all available options.
 
 3. Use `&kpls` / `&tog_ls` / `&tog_ls_on` / `&tog_ls_off` in your keymap to make your keyboard layout-aware:
    ```dts
