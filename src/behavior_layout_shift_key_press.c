@@ -95,17 +95,33 @@ static int on_layout_shift_key_press_binding_released(struct zmk_behavior_bindin
     );
 }
 
+#if IS_ENABLED(CONFIG_ZMK_BEHAVIOR_METADATA)
+static const struct behavior_parameter_value_metadata keycode_value_metadata[] = {
+    {
+        .display_name = "Keycode",
+        .type = BEHAVIOR_PARAMETER_VALUE_TYPE_HID_USAGE,
+    },
+};
+
+static const struct behavior_parameter_metadata_set keycode_parameter_set = {
+    .param1_values = keycode_value_metadata,
+    .param1_values_len = ARRAY_SIZE(keycode_value_metadata),
+};
+
+static const struct behavior_parameter_metadata_set metadata_sets[] = {keycode_parameter_set};
+
+static const struct behavior_parameter_metadata layout_shift_key_press_parameter_metadata = {
+    .sets_len = ARRAY_SIZE(metadata_sets),
+    .sets = metadata_sets,
+};
+#endif
+
 static const struct behavior_driver_api behavior_layout_shift_key_press_driver_api = {
     .binding_pressed = on_layout_shift_key_press_binding_pressed,
     .binding_released = on_layout_shift_key_press_binding_released,
     .locality = BEHAVIOR_LOCALITY_CENTRAL,
 #if IS_ENABLED(CONFIG_ZMK_BEHAVIOR_METADATA)
-    .parameter_metadata = {
-        .count = 1,
-        .types = {
-            ZMK_BEHAVIOR_PARAM_TYPE_KEYCODE,
-        },
-    },
+    .parameter_metadata = &layout_shift_key_press_parameter_metadata,
 #endif
 };
 
