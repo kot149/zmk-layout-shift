@@ -20,6 +20,9 @@ Optionally, you can `#include` [`layout_shift_kp_override.dtsi`](dts/layout_shif
 - **JIS**: Japanese keyboard layout (default)
 - **Dvorak**: Dvorak keyboard layout
 
+> [!important]
+> Currently, Dvorak layout does not work with extra modifiers pressed.
+
 ## Usage
 
 ### 1. Add the Module to your `west.yml`
@@ -62,6 +65,9 @@ manifest:
    # Dvorak layout
    CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y
    ```
+
+> [!important]
+> Currently, Dvorak layout does not work with extra modifiers pressed.
 
 3. Use `&kpls` / `&tog_ls` / `&tog_ls_on` / `&tog_ls_off` in your keymap to make your keyboard layout-aware:
    ```dts
