@@ -61,16 +61,75 @@ static uint32_t lookup_mapped_keycode(uint32_t input_keycode) {
     return effective_keycode;
 }
 
-struct behavior_layout_shift_key_press_data {};
+// Storage for tracking key press/release mappings
+#define MAX_PRESSED_KEYS 16
+
+struct key_mapping_entry {
+    uint32_t original_keycode;
+    uint32_t mapped_keycode;
+    bool active;
+};
+
+struct behavior_layout_shift_key_press_data {
+    struct key_mapping_entry pressed_keys[MAX_PRESSED_KEYS];
+};
 
 struct behavior_layout_shift_key_press_config {};
 
+// Helper functions for key mapping storage
+static int store_key_mapping(struct behavior_layout_shift_key_press_data *data, 
+                            uint32_t original_keycode, uint32_t mapped_keycode) {
+    for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
+        if (!data->pressed_keys[i].active) {
+            data->pressed_keys[i].original_keycode = original_keycode;
+            data->pressed_keys[i].mapped_keycode = mapped_keycode;
+            data->pressed_keys[i].active = true;
+            return 0;
+        }
+    }
+    LOG_WRN("LAYOUT_SHIFT: No free slots to store key mapping");
+    return -ENOMEM;
+}
+
+static uint32_t get_stored_mapping(struct behavior_layout_shift_key_press_data *data, 
+                                  uint32_t original_keycode) {
+    for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
+        if (data->pressed_keys[i].active && 
+            data->pressed_keys[i].original_keycode == original_keycode) {
+            return data->pressed_keys[i].mapped_keycode;
+        }
+    }
+    return 0; // Not found
+}
+
+static int remove_key_mapping(struct behavior_layout_shift_key_press_data *data, 
+                             uint32_t original_keycode) {
+    for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
+        if (data->pressed_keys[i].active && 
+            data->pressed_keys[i].original_keycode == original_keycode) {
+            data->pressed_keys[i].active = false;
+            return 0;
+        }
+    }
+    return -ENOENT;
+}
+
 static int on_layout_shift_key_press_binding_pressed(struct zmk_behavior_binding *binding,
                                                     struct zmk_behavior_binding_event event) {
+    const struct device *dev = zmk_behavior_get_binding(binding->behavior_dev);
+    struct behavior_layout_shift_key_press_data *data = dev->data;
+    
     uint32_t original_keycode = binding->param1;
     uint32_t mapped_keycode = lookup_mapped_keycode(original_keycode);
 
     LOG_DBG("LAYOUT_SHIFT: Input keycode 0x%08X -> Mapped keycode 0x%08X", original_keycode, mapped_keycode);
+
+    // Store the mapping for use during release
+    int ret = store_key_mapping(data, original_keycode, mapped_keycode);
+    if (ret < 0) {
+        LOG_ERR("LAYOUT_SHIFT: Failed to store key mapping: %d", ret);
+        // Fall back to direct mapping if storage fails
+    }
 
     // Raise the mapped keycode event
     return raise_zmk_keycode_state_changed_from_encoded(
@@ -82,8 +141,27 @@ static int on_layout_shift_key_press_binding_pressed(struct zmk_behavior_binding
 
 static int on_layout_shift_key_press_binding_released(struct zmk_behavior_binding *binding,
                                                      struct zmk_behavior_binding_event event) {
+    const struct device *dev = zmk_behavior_get_binding(binding->behavior_dev);
+    struct behavior_layout_shift_key_press_data *data = dev->data;
+    
     uint32_t original_keycode = binding->param1;
-    uint32_t mapped_keycode = lookup_mapped_keycode(original_keycode);
+    uint32_t mapped_keycode;
+    
+    // Try to get the stored mapping first
+    uint32_t stored_mapping = get_stored_mapping(data, original_keycode);
+    if (stored_mapping != 0) {
+        mapped_keycode = stored_mapping;
+        LOG_DBG("LAYOUT_SHIFT: Using stored mapping for release 0x%08X -> 0x%08X", 
+                original_keycode, mapped_keycode);
+        
+        // Remove the mapping from storage
+        remove_key_mapping(data, original_keycode);
+    } else {
+        // Fall back to recalculating if no stored mapping found
+        mapped_keycode = lookup_mapped_keycode(original_keycode);
+        LOG_DBG("LAYOUT_SHIFT: No stored mapping found, recalculating 0x%08X -> 0x%08X", 
+                original_keycode, mapped_keycode);
+    }
 
     LOG_DBG("LAYOUT_SHIFT: Released input keycode 0x%08X -> Mapped keycode 0x%08X", original_keycode, mapped_keycode);
 
@@ -110,6 +188,14 @@ static const struct behavior_driver_api behavior_layout_shift_key_press_driver_a
 };
 
 static int layout_shift_key_press_init(const struct device *dev) {
+    struct behavior_layout_shift_key_press_data *data = 
+        (struct behavior_layout_shift_key_press_data *)dev->data;
+    
+    // Initialize the pressed keys storage
+    for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
+        data->pressed_keys[i].active = false;
+    }
+    
     LOG_INF("Layout Shift Behavior Initialized");
     return 0;
 }
