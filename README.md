@@ -20,8 +20,14 @@ Optionally, you can `#include` [`layout_shift_kp_override.dtsi`](dts/layout_shif
 - **JIS**: Japanese keyboard layout (default)
 - **Dvorak**: Dvorak keyboard layout
 
-> [!important]
-> Currently, Dvorak layout does not work with extra modifiers pressed.
+## Modifier Handling
+
+This module supports granular modifier control for each keycode mapping using ZMK's standard modifier macros (`STRIP_MODS`, `APPLY_MODS`, `SELECT_MODS`). You can specify which modifiers are **optional** during keycode matching:
+
+- **Optional modifiers**: Specified modifiers are ignored during keycode matching but may be masked to prevent unwanted output
+- **Required modifiers**: Non-optional modifiers must match exactly between input and layout definition
+- **Layout-defined output**: Target keycodes use modifiers as defined in the layout, combined with any required input modifiers  
+- **Full modifier support**: All ZMK modifiers (Shift, Ctrl, Alt, GUI) are properly handled and preserved when required
 
 ## Usage
 
@@ -65,9 +71,6 @@ manifest:
    # Dvorak layout
    CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y
    ```
-
-> [!important]
-> Currently, Dvorak layout does not work with extra modifiers pressed.
 
 3. Use `&kpls` / `&tog_ls` / `&tog_ls_on` / `&tog_ls_off` in your keymap to make your keyboard layout-aware:
    ```dts
@@ -146,14 +149,25 @@ Create a new layout file in `src/layouts/` (e.g., `layout_colemak.h`):
 // Colemak keyboard layout mappings
 // Maps US QWERTY keycodes to their Colemak equivalents
 static const struct keycode_mapping layout_map[] = {
-    /* Letter position changes (QWERTY -> Colemak) */
-    {E, F},                   // E -> F
-    {R, P},                   // R -> P
-    {T, G},                   // T -> G
+    /* from -> to, optional_modifiers */
+    {E, F, OPTIONAL_ALL},                   // E -> F (all modifiers optional for letters)
+    {R, P, OPTIONAL_ALL},                   // R -> P (all modifiers optional for letters)
+    {T, G, OPTIONAL_ALL},                   // T -> G (all modifiers optional for letters)
     // ... add more mappings as needed
+    // For symbols, you might want to require certain modifiers:
+    // {COMMA, W, OPTIONAL_CTRL | OPTIONAL_ALT},  // , -> W (Shift required, Ctrl/Alt optional)
 };
 #endif
 ```
+
+**Optional Modifier Control Options:**
+- `OPTIONAL_NONE` (0): All modifiers required (exact match)
+- `OPTIONAL_SHIFT`: Shift keys are optional during matching
+- `OPTIONAL_CTRL`: Ctrl keys are optional during matching
+- `OPTIONAL_ALT`: Alt keys are optional during matching
+- `OPTIONAL_GUI`: GUI (Windows/Cmd) keys are optional during matching
+- `OPTIONAL_ALL` (0xFF): All modifiers optional during matching
+- Custom combinations: `OPTIONAL_CTRL | OPTIONAL_ALT` (Ctrl/Alt optional, Shift/GUI required)
 
 References:
 - [`keys.h`](https://github.com/zmkfirmware/zmk/blob/main/app/include/dt-bindings/zmk/keys.h)
