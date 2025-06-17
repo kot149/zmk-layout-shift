@@ -43,3 +43,10 @@ ZMK_CONFIG_NAME=zmk-config-roBa just --justfile ../../justfile --working-directo
 If build fails, fix the issue and try again until it passes.
 
 Important: Build may take several minutes to complete. Make sure to wait for the build to finish completely before determining if the build is successful.
+
+## Branch Strategy
+
+- For compatibility for user's west.yml, no breaking changes should be made without updating the branch name.
+- Current stable branch is `v1`.
+- When making breaking changes, bump the branch name to `v2`.
+- For changes with no breaking changes, new branches should be created from `v1` branch with prefix `v1-`.
