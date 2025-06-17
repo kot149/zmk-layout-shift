@@ -68,6 +68,7 @@ struct key_mapping_entry {
     uint32_t original_keycode;
     uint32_t mapped_keycode;
     bool active;
+    bool shift_masked;  // Track if shift modifiers were masked for this key
 };
 
 struct behavior_layout_shift_key_press_data {
@@ -76,14 +77,21 @@ struct behavior_layout_shift_key_press_data {
 
 struct behavior_layout_shift_key_press_config {};
 
+// Helper function to check if a keycode contains shift modifiers
+static bool keycode_contains_shift(uint32_t keycode) {
+    struct zmk_keycode_state_changed ev = zmk_keycode_state_changed_from_encoded(keycode, true, 0);
+    return (ev.implicit_modifiers & (MOD_LSFT | MOD_RSFT)) != 0;
+}
+
 // Helper functions for key mapping storage
 static int store_key_mapping(struct behavior_layout_shift_key_press_data *data, 
-                            uint32_t original_keycode, uint32_t mapped_keycode) {
+                            uint32_t original_keycode, uint32_t mapped_keycode, bool shift_masked) {
     for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
         if (!data->pressed_keys[i].active) {
             data->pressed_keys[i].original_keycode = original_keycode;
             data->pressed_keys[i].mapped_keycode = mapped_keycode;
             data->pressed_keys[i].active = true;
+            data->pressed_keys[i].shift_masked = shift_masked;
             return 0;
         }
     }
@@ -100,6 +108,17 @@ static uint32_t get_stored_mapping(struct behavior_layout_shift_key_press_data *
         }
     }
     return 0; // Not found
+}
+
+static bool get_stored_shift_mask_state(struct behavior_layout_shift_key_press_data *data, 
+                                       uint32_t original_keycode) {
+    for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
+        if (data->pressed_keys[i].active && 
+            data->pressed_keys[i].original_keycode == original_keycode) {
+            return data->pressed_keys[i].shift_masked;
+        }
+    }
+    return false; // Not found
 }
 
 static int remove_key_mapping(struct behavior_layout_shift_key_press_data *data, 
@@ -124,8 +143,21 @@ static int on_layout_shift_key_press_binding_pressed(struct zmk_behavior_binding
 
     LOG_DBG("LAYOUT_SHIFT: Input keycode 0x%08X -> Mapped keycode 0x%08X", original_keycode, mapped_keycode);
 
+    // Check if we need to mask shift modifiers
+    bool shift_masked = false;
+    zmk_mod_flags_t explicit_mods = zmk_hid_get_explicit_mods();
+    bool explicit_shift_active = (explicit_mods & (MOD_LSFT | MOD_RSFT)) != 0;
+    bool mapped_has_shift = keycode_contains_shift(mapped_keycode);
+    
+    if (explicit_shift_active && !mapped_has_shift) {
+        // Mask shift modifiers since mapped keycode doesn't contain shift
+        zmk_hid_masked_modifiers_set(MOD_LSFT | MOD_RSFT);
+        shift_masked = true;
+        LOG_DBG("LAYOUT_SHIFT: Masking shift modifiers for keycode 0x%08X", mapped_keycode);
+    }
+
     // Store the mapping for use during release
-    int ret = store_key_mapping(data, original_keycode, mapped_keycode);
+    int ret = store_key_mapping(data, original_keycode, mapped_keycode, shift_masked);
     if (ret < 0) {
         LOG_ERR("LAYOUT_SHIFT: Failed to store key mapping: %d", ret);
         // Fall back to direct mapping if storage fails
@@ -146,13 +178,21 @@ static int on_layout_shift_key_press_binding_released(struct zmk_behavior_bindin
     
     uint32_t original_keycode = binding->param1;
     uint32_t mapped_keycode;
+    bool was_shift_masked = false;
     
     // Try to get the stored mapping first
     uint32_t stored_mapping = get_stored_mapping(data, original_keycode);
     if (stored_mapping != 0) {
         mapped_keycode = stored_mapping;
+        was_shift_masked = get_stored_shift_mask_state(data, original_keycode);
         LOG_DBG("LAYOUT_SHIFT: Using stored mapping for release 0x%08X -> 0x%08X", 
                 original_keycode, mapped_keycode);
+        
+        // Clear shift mask if it was applied for this key
+        if (was_shift_masked) {
+            zmk_hid_masked_modifiers_clear();
+            LOG_DBG("LAYOUT_SHIFT: Clearing shift mask for keycode 0x%08X", mapped_keycode);
+        }
         
         // Remove the mapping from storage
         remove_key_mapping(data, original_keycode);
@@ -210,6 +250,7 @@ static int layout_shift_key_press_init(const struct device *dev) {
     // Initialize the pressed keys storage
     for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
         data->pressed_keys[i].active = false;
+        data->pressed_keys[i].shift_masked = false;
     }
     
     LOG_INF("Layout Shift Behavior Initialized");
