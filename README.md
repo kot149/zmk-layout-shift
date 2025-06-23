@@ -71,7 +71,7 @@ manifest:
 
            default_layer {
                bindings = <
-                   &kpls EQUAL    // Will output = normally, but _ when layout shift is active for JIS layout
+                   &kpls EQUAL    // Will output = normally, but _ (which is = on JIS layout) for JIS layout
                    &tog_ls        // Toggle layout shift on/off
                    &tog_ls_on     // Turn layout shift on
                    &tog_ls_off    // Turn layout shift off
@@ -84,6 +84,13 @@ manifest:
 ### 3. Override `&kp` Behavior (Optional)
 
 You can `#include` [`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) to override the `&kp` behavior with `&kpls`, so that you can use layout shift without modifying your keymap, while preserving [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) compatibility.
+
+```c
+#include <layout_shift_kp_override.dtsi>
+```
+
+Now you can use `&kp` as usual.
+
 ```dts
 #include <layout_shift_kp_override.dtsi>
 
@@ -93,7 +100,7 @@ You can `#include` [`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_overrid
 
         default_layer {
             bindings = <
-                &kp EQUAL      // Will output = normally, but _ when layout shift is active for JIS layout
+                &kp EQUAL      // Will output = normally, but _ (which is = on JIS layout) for JIS layout
                 &tog_ls        // Toggle layout shift on/off
                 &tog_ls_on     // Turn layout shift on
                 &tog_ls_off    // Turn layout shift off
