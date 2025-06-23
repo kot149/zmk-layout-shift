@@ -110,7 +110,8 @@ Now you can use `&kp` as usual.
 };
 ```
 
-In this case, you can omit `layout_shift.dtsi` as it's also included in `layout_shift_kp_override.dtsi`.
+> [!note]
+> You can omit `layout_shift.dtsi` as it's also included in `layout_shift_kp_override.dtsi`.
 
 ## Adding New Layouts
 
