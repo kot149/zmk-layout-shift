@@ -19,7 +19,7 @@ Optionally, you can `#include` [`layout_shift_kp_override.dtsi`](dts/layout_shif
 
 - **JIS**: Japanese keyboard layout (default)
 - **Dvorak**: Dvorak keyboard layout
-- **Swap Ctrl and Cmd**: Swap Ctrl / Cmd for Windows / Mac (Note: this does not work with mod-taps (`&mt`))
+- **Swap Ctrl and Cmd**: Swap Ctrl / Cmd for Windows / Mac (Note: Currently, this only works with pure key presses (like `&kp LEFT_CONTROL`) or mod-taps (like `&mt LEFT_CONTROL A`). It doesn't work for modifiers applied to non-modifier key presses (like `&kp LCTL(C)`)).
 
 ## Usage
 
