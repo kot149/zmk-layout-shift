@@ -2,11 +2,11 @@
 
 [ [English](README.md) / 日本語 ]
 
-このモジュールは、主にOSがJIS配列などの非USレイアウトに設定されている場合のキーの相違を解消することを目的として、実行時にキーボードレイアウトを動的に切り替える仕組みを提供します。
+このモジュールは、主にOSがJIS配列などの非USレイアウトに設定されている場合のキーコードの相違を解消することを目的として、実行時にキーボードレイアウトを動的に切り替える機能を提供します。
 
-具体的には、現在のレイアウトシフト状態に応じてキーコードをマッピングする `&kpls` behaviorを提供します。また、`&kpls` で `&kp` をオーバーライドすることで、既存のキーマップを変更することなく、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性を保ちながら使用することができます。
+具体的には、現在のレイアウトシフト状態に応じてキーコードをマッピングする `&kpls` behaviorを提供します。また、`&kpls` で `&kp` をオーバーライドすることで、既存のキーマップを変更することなく、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性を維持しながら使用することができます。
 
-## Behavior一覧
+## Behavior 一覧
 
 このモジュールは以下のbehaviorを定義します。
 
@@ -15,7 +15,7 @@
 - `&tog_ls_on`: レイアウトシフト状態をオンにします
 - `&tog_ls_off`: レイアウトシフト状態をオフにします
 
-オプションとして、[`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) を `#include` することで、`&kpls` で `&kp` をオーバーライドできます。これにより、キーマップを変更することなく、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性を保ちながら使用することができます。
+オプションとして、[`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) を `#include` することで、`&kpls` で `&kp` をオーバーライドできます。これにより、既存のキーマップを変更することなく、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性を維持しながら使用することができます。
 
 ## サポートされているレイアウト一覧
 
@@ -53,18 +53,15 @@ manifest:
    #include <layout_shift.dtsi>
    ```
 
-2. 設定ファイル(例: `your_keyboard.conf`)で [`LAYOUT_SHIFT_TARGET_LAYOUT` choice](Kconfig) からターゲットレイアウトを1つ選択する
+2. [`LAYOUT_SHIFT_TARGET_LAYOUT` choice](Kconfig) からターゲットレイアウトを1つ選択し、.confファイル(例: `your_keyboard.conf`)に追記する
    ```kconfig
-   # 日本語(JIS)レイアウト
-   CONFIG_LAYOUT_SHIFT_TARGET_JIS=y
-
+   CONFIG_LAYOUT_SHIFT_TARGET_JIS=y # 日本語(JIS)レイアウト
    # または
-
-   # Dvorakレイアウト
-   CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y
+   CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y # Dvorakレイアウト
+   # など
    ```
 
-3. キーマップに `&kpls` / `&tog_ls` / `&tog_ls_on` / `&tog_ls_off` を追加し、レイアウトシフト状態を切り替え可能にする
+3. キーマップに `&tog_ls` / `&tog_ls_on` / `&tog_ls_off` を追加し、`&kp`の代わりに`&kpls`を使用することでレイアウトを切り替え可能にする
    ```dts
    #include <layout_shift.dtsi>
 
@@ -86,7 +83,7 @@ manifest:
 
 ### 3. `&kp`のオーバーライド(オプション)
 
-[`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) を `#include` することで、`&kpls` で `&kp` をオーバーライドできます。これにより、キーマップを変更することなく、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性を保ちながら使用することができます。
+[`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) を `#include` することで、`&kpls` で `&kp` をオーバーライドできます。これにより、既存のキーマップを変更することなく、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性を維持しながら使用することができます。
 
 ```c
 #include <layout_shift_kp_override.dtsi>
@@ -118,7 +115,7 @@ Note: `layout_shift_kp_override.dtsi` には `layout_shift.dtsi` も含まれて
 };
 ```
 
-## 新しいレイアウトの追加
+## 新しいレイアウトの追加手順
 
 ### Step 1: Kconfigオプションの追加
 

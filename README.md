@@ -53,18 +53,15 @@ manifest:
    #include <layout_shift.dtsi>
    ```
 
-2. Select the target layout by selecting one from [`LAYOUT_SHIFT_TARGET_LAYOUT` choice](Kconfig) in your configuration file (e.g., `your_keyboard.conf`):
+2. Select the target layout by selecting one from [`LAYOUT_SHIFT_TARGET_LAYOUT` choice](Kconfig) and add it to your .conf file (e.g., `your_keyboard.conf`):
    ```kconfig
-   # Japanese (JIS) layout
-   CONFIG_LAYOUT_SHIFT_TARGET_JIS=y
-
+   CONFIG_LAYOUT_SHIFT_TARGET_JIS=y # Japanese (JIS) layout
    # or
-
-   # Dvorak layout
-   CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y
+   CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y # Dvorak layout
+   # etc.
    ```
 
-3. Add `&kpls` / `&tog_ls` / `&tog_ls_on` / `&tog_ls_off` to your keymap to allow toggling the layout shift state
+3. Add `&tog_ls` / `&tog_ls_on` / `&tog_ls_off` to your keymap and use `&kpls` instead of `&kp` to allow toggling the layout
    ```dts
    #include <layout_shift.dtsi>
 
