@@ -161,14 +161,14 @@ static const struct keycode_mapping layout_map[] = {
 #endif
 ```
 
-**オプション修飾キー制御オプション: **
+**修飾キー制御オプション:**
 - `OPTIONAL_NONE` (0): すべての修飾キーが必須(完全一致)
 - `OPTIONAL_SHIFT`: Shiftキーは任意
 - `OPTIONAL_CTRL`: Ctrlキーは任意
 - `OPTIONAL_ALT`: Altキーは任意
 - `OPTIONAL_GUI`: GUI(Windows/Cmd)キーは任意
 - `OPTIONAL_ALL` (0xFF): すべての修飾キーが任意
-- カスタム組み合わせ: `OPTIONAL_CTRL | OPTIONAL_ALT`(Ctrl/Altは任意、Shift/GUIは必須)
+- カスタムの組み合わせ: `OPTIONAL_CTRL | OPTIONAL_ALT`(Ctrl/Altは任意、Shift/GUIは必須)
 
 参考:
 - [`zmk/keys.h`](https://github.com/zmkfirmware/zmk/blob/main/app/include/dt-bindings/zmk/keys.h)
