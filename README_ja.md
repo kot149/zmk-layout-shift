@@ -4,18 +4,18 @@
 
 このモジュールは、主にOSがJIS配列などの非USレイアウトに設定されている場合のキーの相違を解消することを目的として、実行時にキーボードレイアウトを動的に切り替える仕組みを提供します。
 
-具体的には、このモジュールは現在のレイアウトシフト状態に応じてキーコードをマッピングする `&kpls` behaviorを提供します。`&kp` behaviorを `&kpls` でオーバーライドすることで、既存のキーマップを変更することなく、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性を保ちながら使用することができます。
+具体的には、現在のレイアウトシフト状態に応じてキーコードをマッピングする `&kpls` behaviorを提供します。また、`&kpls` で `&kp` をオーバーライドすることで、既存のキーマップを変更することなく、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性を保ちながら使用することができます。
 
-## Behavior
+## Behavior一覧
 
 このモジュールは以下のbehaviorを定義します。
 
-- `&kpls`: レイアウト対応版の `&kp`です。現在のレイアウトシフト状態に応じてキーコードをマッピングします
+- `&kpls`: レイアウト対応版の `&kp`です。現在のレイアウトシフト状態に応じてキーコードをマッピングします。例えば、`&kpls EQUAL` は通常は `=` を出力しますが、JISレイアウトが有効な場合は `_` (JISレイアウトでの `=` に対応)を出力します。
 - `&tog_ls`: レイアウトシフト状態を切り替えます
 - `&tog_ls_on`: レイアウトシフト状態をオンにします
 - `&tog_ls_off`: レイアウトシフト状態をオフにします
 
-オプションとして、[`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) を `#include` することで、`&kp` behaviorを `&kpls` でオーバーライドできます。これにより、キーマップを変更することなく、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性を保ちながら使用することができます。
+オプションとして、[`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) を `#include` することで、`&kpls` で `&kp` をオーバーライドできます。これにより、キーマップを変更することなく、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性を保ちながら使用することができます。
 
 ## サポートされているレイアウト一覧
 
@@ -25,7 +25,7 @@
 
 ## 使用方法
 
-### 1. `west.yml` にモジュールを追加
+### 1. `west.yml` にモジュールを追加する
 
 ```diff:yml
 manifest:
@@ -84,14 +84,14 @@ manifest:
    };
    ```
 
-### 3. `&kp` behaviorのオーバーライド(オプション)
+### 3. `&kp`のオーバーライド(オプション)
 
-[`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) を `#include` することで、`&kp` behaviorを `&kpls` でオーバーライドできます。これにより、キーマップを変更することなく、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性を保ちながら使用することができます。
+[`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) を `#include` することで、`&kpls` で `&kp` をオーバーライドできます。これにより、キーマップを変更することなく、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性を保ちながら使用することができます。
 
 ```c
 #include <layout_shift_kp_override.dtsi>
 ```
-注: `layout_shift_kp_override.dtsi` には `layout_shift.dtsi` も含まれているため、`layout_shift.dtsi` の include は省略できます。
+Note: `layout_shift_kp_override.dtsi` には `layout_shift.dtsi` も含まれているため、`layout_shift.dtsi` の include は省略できます。
 
 > [!important]
 > この include は `#include <behaviors.dtsi>` やその他の include \*\***よりも下**\*\*に追加する必要があります。

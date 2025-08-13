@@ -10,7 +10,7 @@ Specifically, this module provides a behavior `&kpls` that maps keycodes accordi
 
 This module defines the following behaviors:
 
-- `&kpls`: A layout-aware version of `&kp`; maps keycodes according to the current layout shift state
+- `&kpls`: A layout-aware version of `&kp`; maps keycodes according to the current layout shift state. For example, `&kpls EQUAL` normally outputs `=`, but outputs `_` (which is `=` in JIS layout) when JIS layout is enabled.
 - `&tog_ls`: Toggles the layout shift state
 - `&tog_ls_on`: Turns on the layout shift state
 - `&tog_ls_off`: Turns off the layout shift state
