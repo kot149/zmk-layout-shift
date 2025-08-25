@@ -14,6 +14,9 @@
 - `&tog_ls`: レイアウトシフト状態のオンオフを切り替える
 - `&tog_ls_on`: レイアウトシフト状態をオンにする
 - `&tog_ls_off`: レイアウトシフト状態をオフにする
+- `&to_ls <state>`: レイアウトシフト状態を明示的に設定する (0: オフ, 1: オン)
+- `&mols <layer>`: 指定したレイヤーを有効化し、レイアウトシフト時は別のレイヤーに切り替える
+- `&mscls <dir>`: マウススクロール入力を送信し、レイアウトに応じてスクロール方向を調整する
 
 オプションとして、[`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) を `#include` することで、`&kpls` で `&kp` をオーバーライドできます。これにより、既存のキーマップを変更することなく、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性を維持しながら使用することができます。
 
@@ -21,7 +24,7 @@
 
 - **JIS**: JISレイアウト
 - **Dvorak**: Dvorakレイアウト
-- **Swap Ctrl and Cmd**: Windows / Mac向けのCtrl / Cmd入れ替え(注: 現状、純粋な修飾キー押下(`&kp LEFT_CONTROL` など)やmod-tap(`&mt LEFT_CONTROL A` など)でのみ動作します。非修飾キーに適用されたもの(`&kp LCTL(C)` など)に対しては動作しません)
+- **Mac/Windows modifier swap**: Windows / Mac向けにCtrl, Alt, Cmd/Winを回転させる(注: 現状、純粋な修飾キー押下(`&kp LEFT_CONTROL` など)やmod-tap(`&mt LEFT_CONTROL A` など)でのみ動作します。非修飾キーに適用されたもの(`&kp LCTL(C)` など)に対しては動作しません)。レイアウトシフト状態`0`がMac(ナチュラルスクロール)、`1`がWindowsに対応します。スクロール方向を切り替えるためにMac用(例: レイヤー`5`)とWindows用(例: レイヤー`6`)のスクロールレイヤーを用意してください。
 
 ## 使用方法
 

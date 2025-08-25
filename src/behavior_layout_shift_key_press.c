@@ -13,26 +13,12 @@
 #include <dt-bindings/zmk/modifiers.h>
 #include <dt-bindings/zmk/hid_usage.h>
 #include <dt-bindings/zmk/hid_usage_pages.h>
+#include "layouts/layout_common.h"
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 // External function to check layout shift state
 extern bool zmk_layout_shift_is_active(void);
-
-// Keycode mapping structure
-struct keycode_mapping {
-    uint32_t us_keycode;
-    uint32_t target_keycode;
-    zmk_mod_flags_t optional_modifiers;  // Bitmask of modifiers that are optional during matching
-};
-
-// Convenient modifier mask definitions (defined before including layouts)
-#define OPTIONAL_SHIFT  (MOD_LSFT | MOD_RSFT)
-#define OPTIONAL_CTRL   (MOD_LCTL | MOD_RCTL)
-#define OPTIONAL_ALT    (MOD_LALT | MOD_RALT)
-#define OPTIONAL_GUI    (MOD_LGUI | MOD_RGUI)
-#define OPTIONAL_ALL    (0xFF)
-#define OPTIONAL_NONE   (0)
 
 // Include all layout definitions (with conditional compilation)
 #include "layouts/index.h"

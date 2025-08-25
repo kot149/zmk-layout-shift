@@ -14,6 +14,9 @@ This module defines the following behaviors:
 - `&tog_ls`: Toggles the layout shift state
 - `&tog_ls_on`: Turns on the layout shift state
 - `&tog_ls_off`: Turns off the layout shift state
+- `&to_ls <state>`: Sets the layout shift state explicitly (0: off, 1: on)
+- `&mols <layer>`: Activates a layer, switching to an alternate layer when layout shift is enabled
+- `&mscls <dir>`: Sends mouse scroll input with direction adjusted by the current layout
 
 Optionally, you can `#include` [`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) to override the `&kp` behavior with `&kpls`, so that you can use layout shift without modifying your keymap, while preserving [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) compatibility.
 
@@ -21,7 +24,7 @@ Optionally, you can `#include` [`layout_shift_kp_override.dtsi`](dts/layout_shif
 
 - **JIS**: Japanese keyboard layout
 - **Dvorak**: Dvorak keyboard layout
-- **Swap Ctrl and Cmd**: Swap Ctrl / Cmd for Windows / Mac (Note: Currently, this only works with pure modifier key presses (like `&kp LEFT_CONTROL`) or mod-taps (like `&mt LEFT_CONTROL A`). It doesn't work for modifiers applied to non-modifier key presses (like `&kp LCTL(C)`)).
+- **Mac/Windows modifier swap**: Rotate Ctrl, Alt and Cmd/Win modifiers for Mac vs. Windows layouts. (Note: Currently, this only works with pure modifier key presses (like `&kp LEFT_CONTROL`) or mod-taps (like `&mt LEFT_CONTROL A`). It doesn't work for modifiers applied to non-modifier key presses (like `&kp LCTL(C)`)). Layout shift state `0` corresponds to the Mac layout with natural scroll, while state `1` corresponds to the Windows layout. Prepare separate scroll layers (e.g., layer `5` for Mac and layer `6` for Windows) to switch scroll direction accordingly.
 
 ## Usage
 

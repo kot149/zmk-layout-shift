@@ -9,48 +9,81 @@
 #include <dt-bindings/zmk/keys.h>
 
 / {
-    behaviors {
-        // Layout-aware key press behavior alias
-        kpls: layout_shift_key_press {
-            compatible = "zmk,behavior-layout-shift-key-press";
-            #binding-cells = <1>;
-            label = "LAYOUT_SHIFT_KEY_PRESS";
-            display-name = "Key Press with Layout Shift";
-        };
-
-        // Layout-aware mod-tap behavior alias
-        mtls: layout_shift_mod_tap {
-            compatible = "zmk,behavior-hold-tap";
-            #binding-cells = <2>;
-            flavor = "hold-preferred";
-            tapping-term-ms = <200>;
-            bindings = <&kpls>, <&kpls>;
-            display-name = "Mod-Tap with Layout Shift";
-        };
-
-        // Layout shift toggle behaviors
-        tog_ls: toggle_layout_shift {
-            compatible = "zmk,behavior-layout-shift-toggle";
-            #binding-cells = <0>;
-            toggle-mode = "flip";
-            label = "LAYOUT_SHIFT_TOGGLE";
-            display-name = "Toggle Layout Shift";
-        };
-
-        tog_ls_on: toggle_layout_shift_on {
-            compatible = "zmk,behavior-layout-shift-toggle";
-            #binding-cells = <0>;
-            toggle-mode = "on";
-            label = "LAYOUT_SHIFT_TOGGLE_ON";
-            display-name = "Toggle Layout Shift On";
-        };
-
-        tog_ls_off: toggle_layout_shift_off {
-            compatible = "zmk,behavior-layout-shift-toggle";
-            #binding-cells = <0>;
-            toggle-mode = "off";
-            label = "LAYOUT_SHIFT_TOGGLE_OFF";
-            display-name = "Toggle Layout Shift Off";
-        };
+  behaviors {
+  // Layout-aware key press behavior alias
+  kpls:
+    layout_shift_key_press {
+      compatible = "zmk,behavior-layout-shift-key-press";
+      #binding-cells = <1>;
+      label = "LAYOUT_SHIFT_KEY_PRESS";
+      display-name = "Key Press with Layout Shift";
     };
+
+  // Layout-aware mod-tap behavior alias
+  mtls:
+    layout_shift_mod_tap {
+      compatible = "zmk,behavior-hold-tap";
+      #binding-cells = <2>;
+      flavor = "hold-preferred";
+      tapping-term-ms = <200>;
+      bindings = <&kpls>, <&kpls>;
+      display-name = "Mod-Tap with Layout Shift";
+    };
+
+  // Layout-aware momentary layer behavior alias
+  mols:
+    layout_shift_momentary_layer {
+      compatible = "zmk,behavior-mols";
+      #binding-cells = <1>;
+      label = "LAYOUT_SHIFT_MO";
+      display-name = "Momentary Layer with Layout Shift";
+    };
+
+  // Layout-aware mouse scroll behavior alias
+  mscls:
+    layout_shift_mouse_scroll {
+      compatible = "zmk,behavior-mscls";
+      #binding-cells = <1>;
+      msc = <&msc>;
+      label = "LAYOUT_SHIFT_MOUSE_SCROLL";
+      display-name = "Mouse Scroll with Layout Shift";
+    };
+
+  // Layout shift set behavior alias
+  to_ls:
+    layout_shift_to {
+      compatible = "zmk,behavior-layout-shift-to";
+      #binding-cells = <1>;
+      label = "LAYOUT_SHIFT_TO";
+      display-name = "Set Layout Shift";
+    };
+
+  // Layout shift toggle behaviors
+  tog_ls:
+    toggle_layout_shift {
+      compatible = "zmk,behavior-layout-shift-toggle";
+      #binding-cells = <0>;
+      toggle-mode = "flip";
+      label = "LAYOUT_SHIFT_TOGGLE";
+      display-name = "Toggle Layout Shift";
+    };
+
+  tog_ls_on:
+    toggle_layout_shift_on {
+      compatible = "zmk,behavior-layout-shift-toggle";
+      #binding-cells = <0>;
+      toggle-mode = "on";
+      label = "LAYOUT_SHIFT_TOGGLE_ON";
+      display-name = "Toggle Layout Shift On";
+    };
+
+  tog_ls_off:
+    toggle_layout_shift_off {
+      compatible = "zmk,behavior-layout-shift-toggle";
+      #binding-cells = <0>;
+      toggle-mode = "off";
+      label = "LAYOUT_SHIFT_TOGGLE_OFF";
+      display-name = "Toggle Layout Shift Off";
+    };
+  };
 };

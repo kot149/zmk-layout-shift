@@ -10,7 +10,7 @@ if LAYOUT_SHIFT
 
 choice LAYOUT_SHIFT_TARGET_LAYOUT
     prompt "Target keyboard layout"
-    default LAYOUT_SHIFT_TARGET_JIS
+    default LAYOUT_SHIFT_TARGET_SWAP_CTRL_CMD
     help
       Select the target keyboard layout for layout shift mappings.
       This determines which key mappings are used when layout shift is active.
@@ -26,9 +26,9 @@ config LAYOUT_SHIFT_TARGET_DVORAK
       Dvorak keyboard layout mappings.
 
 config LAYOUT_SHIFT_TARGET_SWAP_CTRL_CMD
-    bool "Swap Ctrl and Cmd"
+    bool "Mac/Windows modifier swap"
     help
-      Swap Ctrl / Cmd for Windows / Mac.
+      Rotate Ctrl, Alt and Cmd/Win modifiers for Mac vs. Windows layouts.
 
 endchoice
 
