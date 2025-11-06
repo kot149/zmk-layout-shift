@@ -268,7 +268,7 @@ static int on_layout_shift_key_press_binding_released(struct zmk_behavior_bindin
 #if IS_ENABLED(CONFIG_ZMK_BEHAVIOR_METADATA)
 static const struct behavior_parameter_value_metadata keycode_value_metadata[] = {
     {
-        .display_name = "Keycode",
+        .display_name = "Key",
         .type = BEHAVIOR_PARAMETER_VALUE_TYPE_HID_USAGE,
     },
 };
