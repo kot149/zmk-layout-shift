@@ -70,7 +70,7 @@ static uint32_t lookup_mapped_keycode(uint32_t input_keycode, int *matched_index
             zmk_mod_flags_t input_required_mods = total_input_mods & ~layout_map[i].optional_modifiers;
 
             if (required_mods == input_required_mods) {
-                // Match found! Apply target keycode with layout-defined modifiers
+                // Match found. Apply target keycode with layout-defined modifiers
                 uint32_t target_base = STRIP_MODS(layout_map[i].target_keycode);
                 zmk_mod_flags_t target_mods = SELECT_MODS(layout_map[i].target_keycode);
 
