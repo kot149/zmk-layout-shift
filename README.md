@@ -4,7 +4,7 @@
 
 This module provides a mechanism to dynamically shift keyboard layouts at runtime, primarily intended to solve discrepancies when an OS is configured for a non-US layout (e.g., JIS).
 
-Specifically, this module provides a behavior `&kpls` that maps keycodes according to the current layout shift state. By overriding the `&kp` behavior with `&kpls`, it works without modifying your keymap, while preserving [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) compatibility.
+Specifically, this module provides a behavior `&kpls` that maps keycodes according to the current layout shift state. You can override the `&kp` behavior with `&kpls`, which lets it work without modifying your existing keymap, while preserving [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) compatibility. If you prefer not to override `&kp`, you can also use `&kpls` in your keymap instead.
 
 ## Behaviors
 
@@ -14,8 +14,6 @@ This module defines the following behaviors:
 - `&tog_ls`: Toggles the layout shift state
 - `&tog_ls_on`: Turns on the layout shift state
 - `&tog_ls_off`: Turns off the layout shift state
-
-Optionally, you can `#include` [`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) to override the `&kp` behavior with `&kpls`, so that you can use layout shift without modifying your keymap, while preserving [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) compatibility.
 
 ## List of Supported Layouts
 
@@ -46,57 +44,35 @@ manifest:
     path: config
 ```
 
-### 2. Update your Keymap
+### 2. Select the Target Layout
 
-1. `#include` [`layout_shift.dtsi`](dts/layout_shift.dtsi) at the top of your keymap:
-   ```c
-   #include <layout_shift.dtsi>
-   ```
+Select the target layout by choosing one from [`LAYOUT_SHIFT_TARGET_LAYOUT` choice](Kconfig) and add it to your `.conf` file, for example:
 
-2. Select the target layout by selecting one from [`LAYOUT_SHIFT_TARGET_LAYOUT` choice](Kconfig) and add it to your .conf file, for example:
-   ```kconfig
-   CONFIG_LAYOUT_SHIFT_TARGET_JIS=y # Japanese (JIS) layout
-   ```
-   or
-   ```kconfig
-   CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y # Dvorak layout
-   ```
+```kconfig
+CONFIG_LAYOUT_SHIFT_TARGET_JIS=y # Japanese (JIS) layout
+```
 
-3. Add `&tog_ls` / `&tog_ls_on` / `&tog_ls_off` to your keymap and use `&kpls` instead of `&kp` to allow toggling the layout:
-   ```dts
-   #include <layout_shift.dtsi>
+or
 
-   / {
-       keymap {
-           compatible = "zmk,keymap";
+```kconfig
+CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y # Dvorak layout
+```
 
-           default_layer {
-               bindings = <
-                   &kpls EQUAL    // Will output = normally, but _ (which is = on JIS layout) for JIS layout
-                   &tog_ls        // Toggle layout shift on/off
-                   &tog_ls_on     // Turn layout shift on
-                   &tog_ls_off    // Turn layout shift off
-               >;
-           };
-       };
-   };
-   ```
+### 3. Include `layout_shift_kp_override.dtsi` to Override `&kp` Behavior
 
-### 3. Override `&kp` Behavior (Optional)
-
-You can `#include` [`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) to override the `&kp` behavior with `&kpls`, so that you can use layout shift without modifying your keymap, while preserving [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) compatibility.
+`#include` [`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) to override `&kp` with custom implementation which is layout-aware. This allows to use layout shift without modifying your existing keymap, while preserving [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) compatibility.
 
 ```c
 #include <layout_shift_kp_override.dtsi>
 ```
-Note: You can omit `layout_shift.dtsi` as it's also included in `layout_shift_kp_override.dtsi`.
 
 > [!important]
 > You need to add this include \*\***below**\*\* the `#include <behaviors.dtsi>` or other includes to make it work.
 > However, [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) automatically reorders the includes. To avoid this, you can copy-paste the definition of `&kp` from [`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) directly to your keymap file.
 
+### 4. Use `&tog_ls`, `&tog_ls_on`, or `&tog_ls_off` to toggle layout shift state
 
-Now you can use `&kp` as usual:
+Use `&tog_ls`, `&tog_ls_on`, or `&tog_ls_off` to your keymap to toggle layout shift state. Then `&kp` will output the keycode according to the current layout shift state.
 
 ```dts
 #include <layout_shift_kp_override.dtsi>
@@ -116,6 +92,29 @@ Now you can use `&kp` as usual:
     };
 };
 ```
+
+> [!note]
+> If you prefer not to override `&kp`, `#include` [`layout_shift.dtsi`](dts/layout_shift.dtsi) instead of [`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) and use `&kpls` in your keymap instead:
+>
+> ```dts
+> // #include <layout_shift_kp_override.dtsi>
+> #include <layout_shift.dtsi>
+>
+> / {
+>     keymap {
+>         compatible = "zmk,keymap";
+>
+>         default_layer {
+>             bindings = <
+>                 &kpls EQUAL    // Will output = normally, but _ (which is = on JIS layout) for JIS layout
+>                 &tog_ls        // Toggle layout shift on/off
+>                 &tog_ls_on     // Turn layout shift on
+>                 &tog_ls_off    // Turn layout shift off
+>             >;
+>         };
+>     };
+> };
+> ```
 
 ## Adding New Layouts
 
