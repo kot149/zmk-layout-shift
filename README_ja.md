@@ -53,12 +53,13 @@ manifest:
    #include <layout_shift.dtsi>
    ```
 
-2. [`LAYOUT_SHIFT_TARGET_LAYOUT` choice](Kconfig) からターゲットレイアウトを1つ選択し、.confファイル(例: `your_keyboard.conf`)に追記する
+2. [`LAYOUT_SHIFT_TARGET_LAYOUT` choice](Kconfig) からターゲットレイアウトを1つ選択し、.confファイルに追記する。例:
    ```kconfig
    CONFIG_LAYOUT_SHIFT_TARGET_JIS=y # 日本語(JIS)レイアウト
-   # または
+   ```
+   または
+   ```kconfig
    CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y # Dvorakレイアウト
-   # など
    ```
 
 3. キーマップに `&tog_ls` / `&tog_ls_on` / `&tog_ls_off` を追加し、`&kp`の代わりに`&kpls`を使用することでレイアウトを切り替え可能にする
