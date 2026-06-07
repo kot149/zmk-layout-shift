@@ -19,7 +19,7 @@
 
 - **JIS**: JISレイアウト
 - **Dvorak**: Dvorakレイアウト
-- **Swap Ctrl and Cmd**: Windows/Mac向けのCtrl/Cmd入れ替え(注: 現状、純粋な修飾キー押下(`&kp LEFT_CONTROL`など)やmod-tap(`&mt LEFT_CONTROL A`など)でのみ動作します。非修飾キーに適用されたもの(`&kp LCTL(C)`など)に対しては動作しません)
+- **Swap Ctrl and Cmd**: Windows/Mac間のCtrl/Cmd入れ替え
 
 ## 使用方法
 

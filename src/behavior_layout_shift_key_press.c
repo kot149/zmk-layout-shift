@@ -39,6 +39,45 @@ struct keycode_mapping {
 
 #define LAYOUT_MAP_SIZE (sizeof(layout_map) / sizeof(layout_map[0]))
 
+// Convert a modifier keycode (e.g. LEFT_CONTROL) to its corresponding mod flag bit.
+// Returns 0 if the keycode is not a modifier keycode.
+static zmk_mod_flags_t mod_keycode_to_flag(uint32_t keycode) {
+    switch (STRIP_MODS(keycode)) {
+        case LEFT_CONTROL:  return MOD_LCTL;
+        case LEFT_SHIFT:    return MOD_LSFT;
+        case LEFT_ALT:      return MOD_LALT;
+        case LEFT_GUI:      return MOD_LGUI;
+        case RIGHT_CONTROL: return MOD_RCTL;
+        case RIGHT_SHIFT:   return MOD_RSFT;
+        case RIGHT_ALT:     return MOD_RALT;
+        case RIGHT_GUI:     return MOD_RGUI;
+        default:            return 0;
+    }
+}
+
+// Translate modifier bits embedded in a keycode (e.g. LCTL(C)) using the layout_map
+// entries that remap modifier keys to modifier keys.
+static zmk_mod_flags_t translate_embedded_mods(zmk_mod_flags_t mods, bool *changed) {
+    zmk_mod_flags_t remaining = mods;
+    zmk_mod_flags_t translated = 0;
+
+    for (size_t i = 0; i < LAYOUT_MAP_SIZE; i++) {
+        zmk_mod_flags_t from_mod = mod_keycode_to_flag(layout_map[i].us_keycode);
+        zmk_mod_flags_t to_mod = mod_keycode_to_flag(layout_map[i].target_keycode);
+        if (from_mod == 0 || to_mod == 0) {
+            continue;
+        }
+        if (remaining & from_mod) {
+            remaining &= ~from_mod;
+            translated |= to_mod;
+            if (changed != NULL) {
+                *changed = true;
+            }
+        }
+    }
+
+    return remaining | translated;
+}
 
 // Function to lookup mapped keycode from input keycode with optional modifier support
 // Returns the mapped keycode, and optionally stores the matched layout entry index
@@ -91,10 +130,23 @@ static uint32_t lookup_mapped_keycode(uint32_t input_keycode, int *matched_index
         }
     }
 
-    // If no mapping found, return original keycode
+    // No base-keycode mapping found. Try translating modifiers embedded in the keycode
+    // (e.g. LCTL(C) -> LGUI(C) when swapping Ctrl/Cmd) using modifier-to-modifier entries.
     if (matched_index != NULL) {
-        *matched_index = -1;  // Indicate no match found
+        *matched_index = -1;
     }
+
+    if (keycode_mods != 0) {
+        bool changed = false;
+        zmk_mod_flags_t new_keycode_mods = translate_embedded_mods(keycode_mods, &changed);
+        if (changed) {
+            uint32_t result = APPLY_MODS(new_keycode_mods, base_input);
+            LOG_DBG("LAYOUT_SHIFT: Mapping embedded mods %08X -> %08X (mods: %02X -> %02X)",
+                    input_keycode, result, keycode_mods, new_keycode_mods);
+            return result;
+        }
+    }
+
     LOG_DBG("LAYOUT_SHIFT: No mapping found for %08X", input_keycode);
     return input_keycode;
 }

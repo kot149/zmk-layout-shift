@@ -19,7 +19,7 @@ This module defines the following behaviors:
 
 - **JIS**: Japanese keyboard layout
 - **Dvorak**: Dvorak keyboard layout
-- **Swap Ctrl and Cmd**: Swap Ctrl / Cmd for Windows / Mac (Note: Currently, this only works with pure modifier key presses (like `&kp LEFT_CONTROL`) or mod-taps (like `&mt LEFT_CONTROL A`). It doesn't work for modifiers applied to non-modifier key presses (like `&kp LCTL(C)`)).
+- **Swap Ctrl and Cmd**: Swap Ctrl / Cmd for Windows / Mac
 
 ## Usage
 
