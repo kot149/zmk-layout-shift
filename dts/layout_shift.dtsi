@@ -7,6 +7,7 @@
 /* ZMK Layout Shift Module */
 
 #include <dt-bindings/zmk/keys.h>
+#include <layouts.dtsi>
 
 / {
     behaviors {

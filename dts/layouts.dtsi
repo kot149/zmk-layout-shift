@@ -1,0 +1,79 @@
+#include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/layout_shift.h>
+
+/ {
+    /omit-if-no-ref/ layout_shift_map_jis: layout_shift_map_jis {
+        compatible = "zmk,layout-shift-map";
+        mappings = <
+            EQUAL             UNDERSCORE        (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            CARET             EQUAL             (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            TILDE             PLUS              (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            AT_SIGN           LEFT_BRACKET      (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            GRAVE             LEFT_BRACE        (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            LEFT_BRACKET      RIGHT_BRACKET     (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            RIGHT_BRACKET     BACKSLASH         (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            LEFT_BRACE        RIGHT_BRACE       (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            RIGHT_BRACE       PIPE              (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            PLUS              COLON             (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            COLON             SINGLE_QUOTE      (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            ASTERISK          DOUBLE_QUOTES     (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            DOUBLE_QUOTES     AT_SIGN           (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            AMPERSAND         CARET             (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            SINGLE_QUOTE      AMPERSAND         (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            LEFT_PARENTHESIS  ASTERISK          (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            RIGHT_PARENTHESIS LEFT_PARENTHESIS  (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            UNDERSCORE        LS(0x87)          (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            BACKSLASH         0x89              (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+            PIPE              LS(0x89)          (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)
+        >;
+    };
+
+    /omit-if-no-ref/ layout_shift_map_dvorak: layout_shift_map_dvorak {
+        compatible = "zmk,layout-shift-map";
+        mappings = <
+            MINUS         LEFT_BRACKET   OPTIONAL_ALL
+            EQUAL         RIGHT_BRACKET  OPTIONAL_ALL
+            Q             SINGLE_QUOTE   OPTIONAL_ALL
+            W             COMMA          OPTIONAL_ALL
+            E             DOT            OPTIONAL_ALL
+            R             P              OPTIONAL_ALL
+            T             Y              OPTIONAL_ALL
+            Y             F              OPTIONAL_ALL
+            U             G              OPTIONAL_ALL
+            I             C              OPTIONAL_ALL
+            O             R              OPTIONAL_ALL
+            P             L              OPTIONAL_ALL
+            LEFT_BRACKET  SLASH          OPTIONAL_ALL
+            RIGHT_BRACKET EQUAL          OPTIONAL_ALL
+            S             O              OPTIONAL_ALL
+            D             E              OPTIONAL_ALL
+            F             U              OPTIONAL_ALL
+            G             I              OPTIONAL_ALL
+            H             D              OPTIONAL_ALL
+            J             H              OPTIONAL_ALL
+            K             T              OPTIONAL_ALL
+            L             N              OPTIONAL_ALL
+            SEMICOLON     S              OPTIONAL_ALL
+            SINGLE_QUOTE  MINUS          OPTIONAL_ALL
+            Z             SEMICOLON      OPTIONAL_ALL
+            X             Q              OPTIONAL_ALL
+            C             J              OPTIONAL_ALL
+            V             K              OPTIONAL_ALL
+            B             X              OPTIONAL_ALL
+            N             B              OPTIONAL_ALL
+            COMMA         W              OPTIONAL_ALL
+            DOT           V              OPTIONAL_ALL
+            SLASH         Z              OPTIONAL_ALL
+        >;
+    };
+
+    /omit-if-no-ref/ layout_shift_map_swap_ctrl_cmd: layout_shift_map_swap_ctrl_cmd {
+        compatible = "zmk,layout-shift-map";
+        mappings = <
+            LEFT_CONTROL  LEFT_COMMAND   OPTIONAL_ALL
+            LEFT_COMMAND  LEFT_CONTROL   OPTIONAL_ALL
+            RIGHT_CONTROL RIGHT_COMMAND  OPTIONAL_ALL
+            RIGHT_COMMAND RIGHT_CONTROL  OPTIONAL_ALL
+        >;
+    };
+};

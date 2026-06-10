@@ -1,0 +1,19 @@
+# Copyright (c) 2024 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: |
+  Layout shift keycode mapping table.
+  Defines keycode mappings as an array of triples: (from_keycode, to_keycode, optional_modifiers).
+
+compatible: "zmk,layout-shift-map"
+
+properties:
+  mappings:
+    type: array
+    required: true
+    description: |
+      Array of keycode mapping triples (from_keycode, to_keycode, optional_modifiers).
+      Each mapping consists of three consecutive 32-bit values:
+        - from_keycode: The US layout keycode to match
+        - to_keycode: The target layout keycode to output
+        - optional_modifiers: Bitmask of modifiers that are optional during matching

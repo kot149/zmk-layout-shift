@@ -19,25 +19,27 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 // External function to check layout shift state
 extern bool zmk_layout_shift_is_active(void);
 
-// Keycode mapping structure
-struct keycode_mapping {
-    uint32_t us_keycode;
-    uint32_t target_keycode;
-    zmk_mod_flags_t optional_modifiers;  // Bitmask of modifiers that are optional during matching
+#if DT_HAS_CHOSEN(zmk_layout_shift_map)
+
+#define LAYOUT_MAP_NODE DT_CHOSEN(zmk_layout_shift_map)
+
+#define _RAW_ENTRY(node, prop, idx) DT_PROP_BY_IDX(node, prop, idx),
+
+static const uint32_t layout_map_raw[] = {
+    DT_FOREACH_PROP_ELEM(LAYOUT_MAP_NODE, mappings, _RAW_ENTRY)
 };
 
-// Convenient modifier mask definitions (defined before including layouts)
-#define OPTIONAL_SHIFT  (MOD_LSFT | MOD_RSFT)
-#define OPTIONAL_CTRL   (MOD_LCTL | MOD_RCTL)
-#define OPTIONAL_ALT    (MOD_LALT | MOD_RALT)
-#define OPTIONAL_GUI    (MOD_LGUI | MOD_RGUI)
-#define OPTIONAL_ALL    (0xFF)
-#define OPTIONAL_NONE   (0)
+#define LAYOUT_MAP_SIZE (ARRAY_SIZE(layout_map_raw) / 3)
+#define LM_US(i)       (layout_map_raw[(i) * 3])
+#define LM_TARGET(i)   (layout_map_raw[(i) * 3 + 1])
+#define LM_OPT_MODS(i) ((zmk_mod_flags_t)layout_map_raw[(i) * 3 + 2])
 
-// Include all layout definitions (with conditional compilation)
-#include "layouts/index.h"
+#else
 
-#define LAYOUT_MAP_SIZE (sizeof(layout_map) / sizeof(layout_map[0]))
+static const uint32_t layout_map_raw[] = {};
+#define LAYOUT_MAP_SIZE 0
+
+#endif
 
 // Convert a modifier keycode (e.g. LEFT_CONTROL) to its corresponding mod flag bit.
 // Returns 0 if the keycode is not a modifier keycode.
@@ -62,8 +64,8 @@ static zmk_mod_flags_t translate_embedded_mods(zmk_mod_flags_t mods, bool *chang
     zmk_mod_flags_t translated = 0;
 
     for (size_t i = 0; i < LAYOUT_MAP_SIZE; i++) {
-        zmk_mod_flags_t from_mod = mod_keycode_to_flag(layout_map[i].us_keycode);
-        zmk_mod_flags_t to_mod = mod_keycode_to_flag(layout_map[i].target_keycode);
+        zmk_mod_flags_t from_mod = mod_keycode_to_flag(LM_US(i));
+        zmk_mod_flags_t to_mod = mod_keycode_to_flag(LM_TARGET(i));
         if (from_mod == 0 || to_mod == 0) {
             continue;
         }
@@ -99,22 +101,22 @@ static uint32_t lookup_mapped_keycode(uint32_t input_keycode, int *matched_index
 
     // Look up in mapping table with optional modifier support
     for (size_t i = 0; i < LAYOUT_MAP_SIZE; i++) {
-        uint32_t base_us = STRIP_MODS(layout_map[i].us_keycode);
-        zmk_mod_flags_t us_mods = SELECT_MODS(layout_map[i].us_keycode);
+        uint32_t base_us = STRIP_MODS(LM_US(i));
+        zmk_mod_flags_t us_mods = SELECT_MODS(LM_US(i));
 
         // Check if base keycodes match
         if (base_input == base_us) {
             // Check if non-optional modifiers match
-            zmk_mod_flags_t required_mods = us_mods & ~layout_map[i].optional_modifiers;
-            zmk_mod_flags_t input_required_mods = total_input_mods & ~layout_map[i].optional_modifiers;
+            zmk_mod_flags_t required_mods = us_mods & ~LM_OPT_MODS(i);
+            zmk_mod_flags_t input_required_mods = total_input_mods & ~LM_OPT_MODS(i);
 
             if (required_mods == input_required_mods) {
                 // Match found. Apply target keycode with layout-defined modifiers
-                uint32_t target_base = STRIP_MODS(layout_map[i].target_keycode);
-                zmk_mod_flags_t target_mods = SELECT_MODS(layout_map[i].target_keycode);
+                uint32_t target_base = STRIP_MODS(LM_TARGET(i));
+                zmk_mod_flags_t target_mods = SELECT_MODS(LM_TARGET(i));
 
                 // Combine target modifiers with non-optional input modifiers
-                zmk_mod_flags_t final_mods = target_mods | (total_input_mods & layout_map[i].optional_modifiers);
+                zmk_mod_flags_t final_mods = target_mods | (total_input_mods & LM_OPT_MODS(i));
 
                 uint32_t result = (final_mods != 0) ? APPLY_MODS(final_mods, target_base) : target_base;
 
@@ -262,7 +264,7 @@ static int on_layout_shift_key_press_binding_pressed(struct zmk_behavior_binding
         zmk_mod_flags_t total_mods = current_mods | keycode_mods;
 
         // Use the already found layout entry
-        mask_unwanted_modifiers(data, layout_map[matched_layout_index].optional_modifiers, mapped_keycode, total_mods);
+        mask_unwanted_modifiers(data, LM_OPT_MODS(matched_layout_index), mapped_keycode, total_mods);
     }
 
     // Store the mapping for use during release
