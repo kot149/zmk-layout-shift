@@ -13,33 +13,33 @@
 #include <dt-bindings/zmk/modifiers.h>
 #include <dt-bindings/zmk/hid_usage.h>
 #include <dt-bindings/zmk/hid_usage_pages.h>
+#include "layout_shift_map.h"
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
-// External function to check layout shift state
-extern bool zmk_layout_shift_is_active(void);
+// Collect all layout shift map devices
+#if DT_HAS_COMPAT_STATUS_OKAY(zmk_layout_shift_map)
 
-#if DT_HAS_CHOSEN(zmk_layout_shift_map)
-
-#define LAYOUT_MAP_NODE DT_CHOSEN(zmk_layout_shift_map)
-
-#define _RAW_ENTRY(node, prop, idx) DT_PROP_BY_IDX(node, prop, idx),
-
-static const uint32_t layout_map_raw[] = {
-    DT_FOREACH_PROP_ELEM(LAYOUT_MAP_NODE, mappings, _RAW_ENTRY)
+static const struct device *layout_map_devs[] = {
+    DT_FOREACH_STATUS_OKAY(zmk_layout_shift_map, _LAYOUT_SHIFT_MAP_DEV_REF)
 };
-
-#define LAYOUT_MAP_SIZE (ARRAY_SIZE(layout_map_raw) / 3)
-#define LM_US(i)       (layout_map_raw[(i) * 3])
-#define LM_TARGET(i)   (layout_map_raw[(i) * 3 + 1])
-#define LM_OPT_MODS(i) ((zmk_mod_flags_t)layout_map_raw[(i) * 3 + 2])
+#define LAYOUT_MAP_DEV_COUNT ARRAY_SIZE(layout_map_devs)
 
 #else
 
-static const uint32_t layout_map_raw[] = {};
-#define LAYOUT_MAP_SIZE 0
+static const struct device **layout_map_devs = NULL;
+#define LAYOUT_MAP_DEV_COUNT 0
 
 #endif
+
+static bool any_layout_shift_active(void) {
+    for (size_t d = 0; d < LAYOUT_MAP_DEV_COUNT; d++) {
+        if (layout_shift_map_is_active(layout_map_devs[d])) {
+            return true;
+        }
+    }
+    return false;
+}
 
 // Convert a modifier keycode (e.g. LEFT_CONTROL) to its corresponding mod flag bit.
 // Returns 0 if the keycode is not a modifier keycode.
@@ -57,100 +57,127 @@ static zmk_mod_flags_t mod_keycode_to_flag(uint32_t keycode) {
     }
 }
 
-// Translate modifier bits embedded in a keycode (e.g. LCTL(C)) using the layout_map
-// entries that remap modifier keys to modifier keys.
+// Translate modifier bits embedded in a keycode (e.g. LCTL(C)) using modifier-to-modifier
+// entries. Maps are applied sequentially so that chaining works (e.g. map1: Ctrl->Cmd,
+// map2: Cmd->Alt results in Ctrl->Alt).
 static zmk_mod_flags_t translate_embedded_mods(zmk_mod_flags_t mods, bool *changed) {
-    zmk_mod_flags_t remaining = mods;
-    zmk_mod_flags_t translated = 0;
+    zmk_mod_flags_t result = mods;
 
-    for (size_t i = 0; i < LAYOUT_MAP_SIZE; i++) {
-        zmk_mod_flags_t from_mod = mod_keycode_to_flag(LM_US(i));
-        zmk_mod_flags_t to_mod = mod_keycode_to_flag(LM_TARGET(i));
-        if (from_mod == 0 || to_mod == 0) {
+    for (size_t d = 0; d < LAYOUT_MAP_DEV_COUNT; d++) {
+        if (!layout_shift_map_is_active(layout_map_devs[d])) {
             continue;
         }
-        if (remaining & from_mod) {
-            remaining &= ~from_mod;
-            translated |= to_mod;
-            if (changed != NULL) {
-                *changed = true;
+        zmk_mod_flags_t remaining = result;
+        zmk_mod_flags_t translated = 0;
+
+        size_t count = layout_shift_map_entry_count(layout_map_devs[d]);
+        for (size_t i = 0; i < count; i++) {
+            struct layout_shift_map_entry entry = layout_shift_map_get_entry(layout_map_devs[d], i);
+            zmk_mod_flags_t from_mod = mod_keycode_to_flag(entry.from_keycode);
+            zmk_mod_flags_t to_mod = mod_keycode_to_flag(entry.to_keycode);
+            if (from_mod == 0 || to_mod == 0) {
+                continue;
+            }
+            if (remaining & from_mod) {
+                remaining &= ~from_mod;
+                translated |= to_mod;
+                if (changed != NULL) {
+                    *changed = true;
+                }
             }
         }
+        result = remaining | translated;
     }
 
-    return remaining | translated;
+    return result;
 }
 
-// Function to lookup mapped keycode from input keycode with optional modifier support
-// Returns the mapped keycode, and optionally stores the matched layout entry index
-static uint32_t lookup_mapped_keycode(uint32_t input_keycode, int *matched_index) {
-    // Only apply mapping if layout shift is active
-    if (!zmk_layout_shift_is_active()) {
-        return input_keycode;
+struct lookup_result {
+    uint32_t keycode;
+    zmk_mod_flags_t matched_opt_mods;
+    bool matched;
+};
+
+// Lookup mapped keycode by applying active layout maps sequentially (chained).
+// The output of one map becomes the input to the next, so map1: A->B, map2: B->C
+// produces A->C.
+static struct lookup_result lookup_mapped_keycode(uint32_t input_keycode) {
+    struct lookup_result result = {
+        .keycode = input_keycode,
+        .matched_opt_mods = 0,
+        .matched = false,
+    };
+
+    if (!any_layout_shift_active()) {
+        return result;
     }
 
-    // Get current explicit modifier state and any modifiers embedded in the keycode
     zmk_mod_flags_t current_mods = zmk_hid_get_explicit_mods();
-    zmk_mod_flags_t keycode_mods = SELECT_MODS(input_keycode);
+    uint32_t current_keycode = input_keycode;
 
-    // Combine explicit modifiers with modifiers from the keycode
-    zmk_mod_flags_t total_input_mods = current_mods | keycode_mods;
-
-    // Get the base keycode without modifiers for comparison
-    uint32_t base_input = STRIP_MODS(input_keycode);
-
-    // Look up in mapping table with optional modifier support
-    for (size_t i = 0; i < LAYOUT_MAP_SIZE; i++) {
-        uint32_t base_us = STRIP_MODS(LM_US(i));
-        zmk_mod_flags_t us_mods = SELECT_MODS(LM_US(i));
-
-        // Check if base keycodes match
-        if (base_input == base_us) {
-            // Check if non-optional modifiers match
-            zmk_mod_flags_t required_mods = us_mods & ~LM_OPT_MODS(i);
-            zmk_mod_flags_t input_required_mods = total_input_mods & ~LM_OPT_MODS(i);
-
-            if (required_mods == input_required_mods) {
-                // Match found. Apply target keycode with layout-defined modifiers
-                uint32_t target_base = STRIP_MODS(LM_TARGET(i));
-                zmk_mod_flags_t target_mods = SELECT_MODS(LM_TARGET(i));
-
-                // Combine target modifiers with non-optional input modifiers
-                zmk_mod_flags_t final_mods = target_mods | (total_input_mods & LM_OPT_MODS(i));
-
-                uint32_t result = (final_mods != 0) ? APPLY_MODS(final_mods, target_base) : target_base;
-
-                // Store the matched index if caller wants it
-                if (matched_index != NULL) {
-                    *matched_index = i;
-                }
-
-                LOG_DBG("LAYOUT_SHIFT: Mapping %08X -> %08X (input_mods: %02X, required: %02X, target_mods: %02X, final: %02X)",
-                        input_keycode, result, total_input_mods, required_mods, target_mods, final_mods);
-                return result;
-            }
+    for (size_t d = 0; d < LAYOUT_MAP_DEV_COUNT; d++) {
+        if (!layout_shift_map_is_active(layout_map_devs[d])) {
+            continue;
         }
+
+        zmk_mod_flags_t keycode_mods = SELECT_MODS(current_keycode);
+        zmk_mod_flags_t total_input_mods = current_mods | keycode_mods;
+        uint32_t base_input = STRIP_MODS(current_keycode);
+
+        size_t count = layout_shift_map_entry_count(layout_map_devs[d]);
+        for (size_t i = 0; i < count; i++) {
+            struct layout_shift_map_entry entry = layout_shift_map_get_entry(layout_map_devs[d], i);
+
+            uint32_t base_us = STRIP_MODS(entry.from_keycode);
+            zmk_mod_flags_t us_mods = SELECT_MODS(entry.from_keycode);
+
+            if (base_input != base_us) {
+                continue;
+            }
+
+            zmk_mod_flags_t required_mods = us_mods & ~entry.optional_mods;
+            zmk_mod_flags_t input_required_mods = total_input_mods & ~entry.optional_mods;
+
+            if (required_mods != input_required_mods) {
+                continue;
+            }
+
+            uint32_t target_base = STRIP_MODS(entry.to_keycode);
+            zmk_mod_flags_t target_mods = SELECT_MODS(entry.to_keycode);
+            zmk_mod_flags_t final_mods = target_mods | (total_input_mods & entry.optional_mods);
+
+            current_keycode = (final_mods != 0) ? APPLY_MODS(final_mods, target_base) : target_base;
+            result.matched_opt_mods |= entry.optional_mods;
+            result.matched = true;
+
+            LOG_DBG("LAYOUT_SHIFT: Mapping %08X -> %08X (dev=%s, input_mods: %02X, target_mods: %02X, final: %02X)",
+                    input_keycode, current_keycode, layout_map_devs[d]->name,
+                    total_input_mods, target_mods, final_mods);
+            break;
+        }
+    }
+
+    if (result.matched) {
+        result.keycode = current_keycode;
+        return result;
     }
 
     // No base-keycode mapping found. Try translating modifiers embedded in the keycode
     // (e.g. LCTL(C) -> LGUI(C) when swapping Ctrl/Cmd) using modifier-to-modifier entries.
-    if (matched_index != NULL) {
-        *matched_index = -1;
-    }
-
+    zmk_mod_flags_t keycode_mods = SELECT_MODS(input_keycode);
     if (keycode_mods != 0) {
         bool changed = false;
         zmk_mod_flags_t new_keycode_mods = translate_embedded_mods(keycode_mods, &changed);
         if (changed) {
-            uint32_t result = APPLY_MODS(new_keycode_mods, base_input);
+            result.keycode = APPLY_MODS(new_keycode_mods, STRIP_MODS(input_keycode));
             LOG_DBG("LAYOUT_SHIFT: Mapping embedded mods %08X -> %08X (mods: %02X -> %02X)",
-                    input_keycode, result, keycode_mods, new_keycode_mods);
+                    input_keycode, result.keycode, keycode_mods, new_keycode_mods);
             return result;
         }
     }
 
     LOG_DBG("LAYOUT_SHIFT: No mapping found for %08X", input_keycode);
-    return input_keycode;
+    return result;
 }
 
 // Storage for tracking key press/release mappings
@@ -252,31 +279,30 @@ static int on_layout_shift_key_press_binding_pressed(struct zmk_behavior_binding
     struct behavior_layout_shift_key_press_data *data = dev->data;
 
     uint32_t original_keycode = binding->param1;
-    int matched_layout_index = -1;
-    uint32_t mapped_keycode = lookup_mapped_keycode(original_keycode, &matched_layout_index);
+    struct lookup_result lr = lookup_mapped_keycode(original_keycode);
 
-    LOG_DBG("LAYOUT_SHIFT: Input keycode 0x%08X -> Mapped keycode 0x%08X", original_keycode, mapped_keycode);
+    LOG_DBG("LAYOUT_SHIFT: Input keycode 0x%08X -> Mapped keycode 0x%08X", original_keycode, lr.keycode);
 
     // If layout shift is active and mapping occurred, handle unwanted modifier masking
-    if (zmk_layout_shift_is_active() && mapped_keycode != original_keycode && matched_layout_index >= 0) {
+    if (lr.matched) {
         zmk_mod_flags_t current_mods = zmk_hid_get_explicit_mods();
         zmk_mod_flags_t keycode_mods = SELECT_MODS(original_keycode);
         zmk_mod_flags_t total_mods = current_mods | keycode_mods;
 
         // Use the already found layout entry
-        mask_unwanted_modifiers(data, LM_OPT_MODS(matched_layout_index), mapped_keycode, total_mods);
+        mask_unwanted_modifiers(data, lr.matched_opt_mods, lr.keycode, total_mods);
     }
 
     // Store the mapping for use during release
-    int ret = store_key_mapping(data, original_keycode, mapped_keycode);
+    int ret = store_key_mapping(data, original_keycode, lr.keycode);
     if (ret < 0) {
         LOG_ERR("LAYOUT_SHIFT: Failed to store key mapping: %d", ret);
     }
 
     // Raise the mapped keycode event
     return raise_zmk_keycode_state_changed_from_encoded(
-        mapped_keycode,
-        true,  // pressed
+        lr.keycode,
+        true, // pressed
         event.timestamp
     );
 }
@@ -300,7 +326,8 @@ static int on_layout_shift_key_press_binding_released(struct zmk_behavior_bindin
         remove_key_mapping(data, original_keycode);
     } else {
         // Fall back to recalculating if no stored mapping found
-        mapped_keycode = lookup_mapped_keycode(original_keycode, NULL);
+        struct lookup_result lr = lookup_mapped_keycode(original_keycode);
+        mapped_keycode = lr.keycode;
         LOG_DBG("LAYOUT_SHIFT: No stored mapping found, recalculating 0x%08X -> 0x%08X",
                 original_keycode, mapped_keycode);
     }

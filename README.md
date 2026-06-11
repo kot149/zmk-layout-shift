@@ -6,14 +6,20 @@ This module provides a mechanism to dynamically shift keyboard layouts at runtim
 
 Specifically, this module provides a behavior `&kpls` that maps keycodes according to the current layout shift state. You can override the `&kp` behavior with `&kpls`, which lets it work without modifying your existing keymap, while preserving [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) compatibility. If you prefer not to override `&kp`, you can also use `&kpls` in your keymap instead.
 
+Multiple layouts can be enabled simultaneously, each with independent on/off state.
+
 ## Behaviors
 
 This module defines the following behaviors:
 
-- `&kpls`: A layout-aware version of `&kp`; maps keycodes according to the current layout shift state. For example, `&kpls EQUAL` normally outputs `=`, but outputs `_` (which is `=` in JIS layout) when JIS layout is enabled.
-- `&tog_ls`: Toggles the layout shift state
-- `&tog_ls_on`: Turns on the layout shift state
-- `&tog_ls_off`: Turns off the layout shift state
+- `&kpls`: A layout-aware version of `&kp`; maps keycodes according to active layout shift maps. For example, `&kpls EQUAL` normally outputs `=`, but outputs `_` (which is `=` in JIS layout) when JIS layout is enabled.
+- `&tog_ls`: Toggles layout shift maps on/off (configure target layout(s) via `layout-maps` property)
+- `&tog_ls_on`: Turns on layout shift maps
+- `&tog_ls_off`: Turns off layout shift maps
+
+These toggle behaviors require the user to configure which layout(s) to control via the `layout-maps` property (see [Usage](#usage)). Multiple layout maps can be specified.
+
+Pre-defined per-layout toggle behaviors are also available as an optional convenience (see [Per-Layout Toggle Behaviors](#per-layout-toggle-behaviors)).
 
 ## List of Supported Layouts
 
@@ -44,19 +50,33 @@ manifest:
     path: config
 ```
 
-### 2. Select the Target Layout
+### 2. Configure Toggle Behaviors with Target Layout(s)
 
-Select the target layout by choosing one from [`LAYOUT_SHIFT_TARGET_LAYOUT` choice](Kconfig) and add it to your `.conf` file, for example:
+Configure the toggle behaviors to point to the desired layout map(s). Layout maps are automatically enabled when referenced. If `layout-maps` is omitted, the toggle controls all available layout maps at once:
 
-```kconfig
-CONFIG_LAYOUT_SHIFT_TARGET_JIS=y # Japanese (JIS) layout
+```dts
+&tog_ls { layout-maps = <&layout_shift_map_jis>; };
+&tog_ls_on { layout-maps = <&layout_shift_map_jis>; };
+&tog_ls_off { layout-maps = <&layout_shift_map_jis>; };
 ```
 
-or
+Available layout map nodes:
 
-```kconfig
-CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y # Dvorak layout
+| Node Label | Layout |
+|---|---|
+| `layout_shift_map_jis` | Japanese (JIS) |
+| `layout_shift_map_dvorak` | Dvorak |
+| `layout_shift_map_swap_ctrl_cmd` | Swap Ctrl / Cmd |
+
+You can control multiple layouts with a single toggle by specifying multiple phandles:
+
+```dts
+&tog_ls { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
+&tog_ls_on { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
+&tog_ls_off { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
 ```
+
+> **Note:** When multiple layout maps are active simultaneously, maps are applied sequentially in devicetree declaration order (`layouts.dtsi`). The output of one map becomes the input to the next, so if map 1 maps `A → B` and map 2 maps `B → C`, the final output is `C`.
 
 ### 3. Include `layout_shift_kp_override.dtsi` to Override `&kp` Behavior
 
@@ -70,12 +90,14 @@ CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y # Dvorak layout
 > You need to add this include \*\***below**\*\* the `#include <behaviors.dtsi>` or other includes to make it work.
 > However, [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/) automatically reorders the includes. To avoid this, you can copy-paste the definition of `&kp` from [`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) directly to your keymap file.
 
-### 4. Use `&tog_ls`, `&tog_ls_on`, or `&tog_ls_off` to toggle layout shift state
+### 4. Use Toggle Behaviors to Control Layout Shift State
 
-Use `&tog_ls`, `&tog_ls_on`, or `&tog_ls_off` to your keymap to toggle layout shift state. Then `&kp` will output the keycode according to the current layout shift state.
+Use `&tog_ls`, `&tog_ls_on`, `&tog_ls_off` in your keymap to control layout shift state. Then `&kp` will output the keycode according to the active layout shift maps.
 
 ```dts
 #include <layout_shift_kp_override.dtsi>
+
+&tog_ls { layout-maps = <&layout_shift_map_jis>; };
 
 / {
     keymap {
@@ -83,10 +105,8 @@ Use `&tog_ls`, `&tog_ls_on`, or `&tog_ls_off` to your keymap to toggle layout sh
 
         default_layer {
             bindings = <
-                &kp EQUAL      // Will output = normally, but _ (which is = on JIS layout) for JIS layout
-                &tog_ls        // Toggle layout shift on/off
-                &tog_ls_on     // Turn layout shift on
-                &tog_ls_off    // Turn layout shift off
+                &kp EQUAL      // Will output = normally, but _ (which is = on JIS layout) when JIS layout is active
+                &tog_ls         // Toggle JIS layout shift on/off
             >;
         };
     };
@@ -97,8 +117,9 @@ Use `&tog_ls`, `&tog_ls_on`, or `&tog_ls_off` to your keymap to toggle layout sh
 > If you prefer not to override `&kp`, `#include` [`layout_shift.dtsi`](dts/layout_shift.dtsi) instead of [`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi) and use `&kpls` in your keymap instead:
 >
 > ```dts
-> // #include <layout_shift_kp_override.dtsi>
 > #include <layout_shift.dtsi>
+>
+> &tog_ls { layout-maps = <&layout_shift_map_jis>; };
 >
 > / {
 >     keymap {
@@ -106,61 +127,83 @@ Use `&tog_ls`, `&tog_ls_on`, or `&tog_ls_off` to your keymap to toggle layout sh
 >
 >         default_layer {
 >             bindings = <
->                 &kpls EQUAL    // Will output = normally, but _ (which is = on JIS layout) for JIS layout
->                 &tog_ls        // Toggle layout shift on/off
->                 &tog_ls_on     // Turn layout shift on
->                 &tog_ls_off    // Turn layout shift off
+>                 &kpls EQUAL    // Will output = normally, but _ (which is = on JIS layout) when JIS layout is active
+>                 &tog_ls         // Toggle JIS layout shift on/off
 >             >;
 >         };
 >     };
 > };
 > ```
 
+## Per-Layout Toggle Behaviors (Optional)
+
+Pre-defined per-layout toggle behaviors are available as a convenience. Enable them by setting `status = "okay"`:
+
+| Layout | Toggle (flip) | Turn On | Turn Off |
+|---|---|---|---|
+| JIS | `&tog_ls_jis` | `&tog_ls_jis_on` | `&tog_ls_jis_off` |
+| Dvorak | `&tog_ls_dvorak` | `&tog_ls_dvorak_on` | `&tog_ls_dvorak_off` |
+| Swap Ctrl/Cmd | `&tog_ls_swap_ctrl_cmd` | `&tog_ls_swap_ctrl_cmd_on` | `&tog_ls_swap_ctrl_cmd_off` |
+
+These are optional shortcuts — you can achieve the same result by configuring `layout-maps` on `&tog_ls` / `&tog_ls_on` / `&tog_ls_off` directly.
+
+If you need separate toggles for different layouts (e.g., one key for JIS, another for Swap Ctrl/Cmd), use the per-layout toggles in your keymap bindings. Referenced layout maps are automatically enabled:
+
+```dts
+/ {
+    keymap {
+        compatible = "zmk,keymap";
+
+        default_layer {
+            bindings = <
+                &tog_ls_jis              // Toggle JIS layout
+                &tog_ls_swap_ctrl_cmd    // Toggle Swap Ctrl/Cmd layout
+            >;
+        };
+    };
+};
+```
+
 ## Adding New Layouts
 
-### Step 1: Add Kconfig Option
+### Step 1: Add Layout Map Node to `layouts.dtsi`
 
-Add a new option to the `choice` block in [`Kconfig`](Kconfig):
+Add a new layout map node to [`dts/layouts.dtsi`](dts/layouts.dtsi):
 
-```kconfig
-choice LAYOUT_SHIFT_TARGET_LAYOUT
-    prompt "Target keyboard layout"
-    default LAYOUT_SHIFT_TARGET_JIS
-
-config LAYOUT_SHIFT_TARGET_JIS
-    bool "Japanese (JIS)"
-
-config LAYOUT_SHIFT_TARGET_DVORAK
-    bool "Dvorak"
-
-...
-
-config LAYOUT_SHIFT_TARGET_COLEMAK    # Add this line
-    bool "Colemak"                    # Add this line
-
-endchoice
-```
-
-### Step 2: Create Layout Definition File
-
-Create a new layout file in [`src/layouts/`](src/layouts/) (e.g., `layout_colemak.h`):
-
-```c
-#ifdef CONFIG_LAYOUT_SHIFT_TARGET_COLEMAK
-#define LAYOUT_DEFINED
-// Colemak keyboard layout mappings
-// Maps US QWERTY keycodes to their Colemak equivalents
-static const struct keycode_mapping layout_map[] = {
-    /* from -> to, optional_modifiers */
-    {E, F, OPTIONAL_ALL},                   // E -> F (all modifiers optional for letters)
-    {R, P, OPTIONAL_ALL},                   // R -> P (all modifiers optional for letters)
-    {T, G, OPTIONAL_ALL},                   // T -> G (all modifiers optional for letters)
-    // ... add more mappings as needed
-    // For symbols, you might want to require certain modifiers:
-    // {COMMA, W, OPTIONAL_CTRL | OPTIONAL_ALT},  // , -> W (Shift required, Ctrl/Alt optional)
+```dts
+/omit-if-no-ref/ layout_shift_map_colemak: layout_shift_map_colemak {
+    compatible = "zmk,layout-shift-map";
+    mappings = <
+        E  F  OPTIONAL_ALL
+        R  P  OPTIONAL_ALL
+        T  G  OPTIONAL_ALL
+        // ... add more mappings as needed
+    >;
 };
-#endif
+
+behaviors {
+    /omit-if-no-ref/ tog_ls_colemak: toggle_layout_shift_colemak {
+        compatible = "zmk,behavior-layout-shift-toggle";
+        #binding-cells = <0>;
+        toggle-mode = "flip";
+        layout-maps = <&layout_shift_map_colemak>;
+    };
+    /omit-if-no-ref/ tog_ls_colemak_on: toggle_layout_shift_colemak_on {
+        compatible = "zmk,behavior-layout-shift-toggle";
+        #binding-cells = <0>;
+        toggle-mode = "on";
+        layout-maps = <&layout_shift_map_colemak>;
+    };
+    /omit-if-no-ref/ tog_ls_colemak_off: toggle_layout_shift_colemak_off {
+        compatible = "zmk,behavior-layout-shift-toggle";
+        #binding-cells = <0>;
+        toggle-mode = "off";
+        layout-maps = <&layout_shift_map_colemak>;
+    };
+};
 ```
+
+Each mapping consists of three values: `from_keycode`, `to_keycode`, `optional_modifiers`.
 
 **Optional Modifier Control Options:**
 - `OPTIONAL_NONE` (0): All modifiers required (exact match)
@@ -175,25 +218,6 @@ References:
 - [`zmk/keys.h`](https://github.com/zmkfirmware/zmk/blob/main/app/include/dt-bindings/zmk/keys.h)
 - [`zmk/modifiers.h`](https://github.com/zmkfirmware/zmk/blob/main/app/include/dt-bindings/zmk/modifiers.h)
 
-### Step 3: Include in Index File
+### Step 2: Update Documentation
 
-Add the include statement to [`src/layouts/index.h`](src/layouts/index.h):
-
-```c
-// Layout index - includes all available layout definitions
-// Each layout file contains its own conditional compilation directives
-
-#include "layout_jis.h"
-#include "layout_dvorak.h"
-...
-#include "layout_colemak.h"    // Add this line
-
-// Ensure at least one layout is defined
-#ifndef LAYOUT_DEFINED
-#error "No target layout selected. Please select a layout in Kconfig."
-#endif
-```
-
-### Step 4: Update Documentation
-
-Update this README.md to list the new layout in the "List of Supported Layouts" section.
+Update this README.md to list the new layout in the "List of Supported Layouts" section and the toggle behavior tables.
