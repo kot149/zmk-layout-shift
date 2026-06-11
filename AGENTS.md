@@ -32,6 +32,10 @@ For detailed project overview, features, and usage instructions, please refer to
 
 **EXPERT FIRST**: Consult `zmkfirmware/zmk` and `zephyrproject-rtos/zephyr` repository experts before coding, not after encountering build failures.
 
+## Development Environment
+
+Build and test instructions in this document assume development within [zmk-workspace](https://github.com/kot149/zmk-workspace). Commands, paths, and `just` recipes may not work in other environments.
+
 ## Build Verification
 
 **MANDATORY BUILD CHECK**: After any implementation or modification, verify that the build passes by running the following command:
