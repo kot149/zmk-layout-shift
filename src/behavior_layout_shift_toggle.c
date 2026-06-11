@@ -25,21 +25,6 @@ struct behavior_layout_shift_toggle_config {
 
 struct behavior_layout_shift_toggle_data {};
 
-// Collect all layout shift map devices for "toggle all" mode
-#if DT_HAS_COMPAT_STATUS_OKAY(zmk_layout_shift_map)
-
-static const struct device *all_layout_maps[] = {
-    DT_FOREACH_STATUS_OKAY(zmk_layout_shift_map, _LAYOUT_SHIFT_MAP_DEV_REF)
-};
-#define ALL_LAYOUT_MAP_COUNT ARRAY_SIZE(all_layout_maps)
-
-#else
-
-static const struct device **all_layout_maps = NULL;
-#define ALL_LAYOUT_MAP_COUNT 0
-
-#endif
-
 static void apply_toggle(const struct device *map_dev, enum toggle_mode mode) {
     switch (mode) {
         case TOGGLE_MODE_ON:
@@ -64,8 +49,8 @@ static int on_layout_shift_toggle_binding_pressed(struct zmk_behavior_binding *b
             apply_toggle(config->layout_maps[i], config->toggle_mode);
         }
     } else {
-        for (size_t i = 0; i < ALL_LAYOUT_MAP_COUNT; i++) {
-            apply_toggle(all_layout_maps[i], config->toggle_mode);
+        for (size_t i = 0; i < layout_shift_map_dev_count; i++) {
+            apply_toggle(layout_shift_map_devs[i], config->toggle_mode);
         }
     }
 

@@ -22,11 +22,35 @@ struct layout_shift_map_data {
     bool active;
 };
 
-bool layout_shift_map_is_active(const struct device *dev);
+static inline bool layout_shift_map_is_active(const struct device *dev) {
+    const struct layout_shift_map_data *data = dev->data;
+    return data->active;
+}
+
+static inline size_t layout_shift_map_entry_count(const struct device *dev) {
+    const struct layout_shift_map_config *cfg = dev->config;
+    return cfg->entry_count;
+}
+
+static inline struct layout_shift_map_entry layout_shift_map_get_entry(const struct device *dev,
+                                                                       size_t index) {
+    const struct layout_shift_map_config *cfg = dev->config;
+    return (struct layout_shift_map_entry){
+        .from_keycode = cfg->mappings_raw[index * 3],
+        .to_keycode = cfg->mappings_raw[index * 3 + 1],
+        .optional_mods = (zmk_mod_flags_t)cfg->mappings_raw[index * 3 + 2],
+    };
+}
+
 void layout_shift_map_set_active(const struct device *dev, bool active);
 void layout_shift_map_toggle(const struct device *dev);
 
-size_t layout_shift_map_entry_count(const struct device *dev);
-struct layout_shift_map_entry layout_shift_map_get_entry(const struct device *dev, size_t index);
+#if DT_HAS_COMPAT_STATUS_OKAY(zmk_layout_shift_map)
+extern const struct device *const layout_shift_map_devs[];
+extern const size_t layout_shift_map_dev_count;
+#else
+#define layout_shift_map_devs NULL
+#define layout_shift_map_dev_count 0
+#endif
 
 #endif

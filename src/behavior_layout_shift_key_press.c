@@ -3,6 +3,7 @@
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <string.h>
 #include <drivers/behavior.h>
 #include <zmk/behavior.h>
 #include <zmk/event_manager.h>
@@ -17,24 +18,9 @@
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
-// Collect all layout shift map devices
-#if DT_HAS_COMPAT_STATUS_OKAY(zmk_layout_shift_map)
-
-static const struct device *layout_map_devs[] = {
-    DT_FOREACH_STATUS_OKAY(zmk_layout_shift_map, _LAYOUT_SHIFT_MAP_DEV_REF)
-};
-#define LAYOUT_MAP_DEV_COUNT ARRAY_SIZE(layout_map_devs)
-
-#else
-
-static const struct device **layout_map_devs = NULL;
-#define LAYOUT_MAP_DEV_COUNT 0
-
-#endif
-
 static bool any_layout_shift_active(void) {
-    for (size_t d = 0; d < LAYOUT_MAP_DEV_COUNT; d++) {
-        if (layout_shift_map_is_active(layout_map_devs[d])) {
+    for (size_t d = 0; d < layout_shift_map_dev_count; d++) {
+        if (layout_shift_map_is_active(layout_shift_map_devs[d])) {
             return true;
         }
     }
@@ -63,16 +49,16 @@ static zmk_mod_flags_t mod_keycode_to_flag(uint32_t keycode) {
 static zmk_mod_flags_t translate_embedded_mods(zmk_mod_flags_t mods, bool *changed) {
     zmk_mod_flags_t result = mods;
 
-    for (size_t d = 0; d < LAYOUT_MAP_DEV_COUNT; d++) {
-        if (!layout_shift_map_is_active(layout_map_devs[d])) {
+    for (size_t d = 0; d < layout_shift_map_dev_count; d++) {
+        if (!layout_shift_map_is_active(layout_shift_map_devs[d])) {
             continue;
         }
         zmk_mod_flags_t remaining = result;
         zmk_mod_flags_t translated = 0;
 
-        size_t count = layout_shift_map_entry_count(layout_map_devs[d]);
+        size_t count = layout_shift_map_entry_count(layout_shift_map_devs[d]);
         for (size_t i = 0; i < count; i++) {
-            struct layout_shift_map_entry entry = layout_shift_map_get_entry(layout_map_devs[d], i);
+            struct layout_shift_map_entry entry = layout_shift_map_get_entry(layout_shift_map_devs[d], i);
             zmk_mod_flags_t from_mod = mod_keycode_to_flag(entry.from_keycode);
             zmk_mod_flags_t to_mod = mod_keycode_to_flag(entry.to_keycode);
             if (from_mod == 0 || to_mod == 0) {
@@ -115,8 +101,8 @@ static struct lookup_result lookup_mapped_keycode(uint32_t input_keycode) {
     zmk_mod_flags_t current_mods = zmk_hid_get_explicit_mods();
     uint32_t current_keycode = input_keycode;
 
-    for (size_t d = 0; d < LAYOUT_MAP_DEV_COUNT; d++) {
-        if (!layout_shift_map_is_active(layout_map_devs[d])) {
+    for (size_t d = 0; d < layout_shift_map_dev_count; d++) {
+        if (!layout_shift_map_is_active(layout_shift_map_devs[d])) {
             continue;
         }
 
@@ -124,9 +110,9 @@ static struct lookup_result lookup_mapped_keycode(uint32_t input_keycode) {
         zmk_mod_flags_t total_input_mods = current_mods | keycode_mods;
         uint32_t base_input = STRIP_MODS(current_keycode);
 
-        size_t count = layout_shift_map_entry_count(layout_map_devs[d]);
+        size_t count = layout_shift_map_entry_count(layout_shift_map_devs[d]);
         for (size_t i = 0; i < count; i++) {
-            struct layout_shift_map_entry entry = layout_shift_map_get_entry(layout_map_devs[d], i);
+            struct layout_shift_map_entry entry = layout_shift_map_get_entry(layout_shift_map_devs[d], i);
 
             uint32_t base_us = STRIP_MODS(entry.from_keycode);
             zmk_mod_flags_t us_mods = SELECT_MODS(entry.from_keycode);
@@ -151,7 +137,7 @@ static struct lookup_result lookup_mapped_keycode(uint32_t input_keycode) {
             result.matched = true;
 
             LOG_DBG("LAYOUT_SHIFT: Mapping %08X -> %08X (dev=%s, input_mods: %02X, target_mods: %02X, final: %02X)",
-                    input_keycode, current_keycode, layout_map_devs[d]->name,
+                    input_keycode, current_keycode, layout_shift_map_devs[d]->name,
                     total_input_mods, target_mods, final_mods);
             break;
         }
@@ -377,16 +363,8 @@ static const struct behavior_driver_api behavior_layout_shift_key_press_driver_a
 };
 
 static int layout_shift_key_press_init(const struct device *dev) {
-    struct behavior_layout_shift_key_press_data *data =
-        (struct behavior_layout_shift_key_press_data *)dev->data;
-
-    // Initialize the pressed keys storage
-    for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
-        data->pressed_keys[i].active = false;
-    }
-
-    // Initialize modifier masking state
-    data->currently_masked_mods = 0;
+    struct behavior_layout_shift_key_press_data *data = dev->data;
+    memset(data, 0, sizeof(*data));
 
     LOG_INF("Layout Shift Behavior Initialized");
     return 0;
