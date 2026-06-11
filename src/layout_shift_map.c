@@ -5,9 +5,23 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/settings/settings.h>
 #include <string.h>
+#include <dt-bindings/zmk/modifiers.h>
 #include "layout_shift_map.h"
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
+
+static void sort_entries(struct layout_shift_map_entry *entries, size_t count) {
+    for (size_t i = 1; i < count; i++) {
+        struct layout_shift_map_entry tmp = entries[i];
+        uint32_t tmp_base = STRIP_MODS(tmp.from_keycode);
+        int j = (int)i - 1;
+        while (j >= 0 && STRIP_MODS(entries[j].from_keycode) > tmp_base) {
+            entries[j + 1] = entries[j];
+            j--;
+        }
+        entries[j + 1] = tmp;
+    }
+}
 
 const struct device *const layout_shift_map_devs[] = {
     DT_FOREACH_STATUS_OKAY(zmk_layout_shift_map, _LAYOUT_SHIFT_MAP_DEV_REF)
@@ -76,7 +90,18 @@ SETTINGS_STATIC_HANDLER_DEFINE(layout_shift, "layout_shift", NULL,
 
 static int layout_shift_map_init(const struct device *dev) {
     struct layout_shift_map_data *data = dev->data;
+    const struct layout_shift_map_config *config = dev->config;
+
     data->active = false;
+
+    for (size_t i = 0; i < config->entry_count; i++) {
+        config->sorted_entries[i] = (struct layout_shift_map_entry){
+            .from_keycode = config->mappings_raw[i * 3],
+            .to_keycode = config->mappings_raw[i * 3 + 1],
+            .optional_mods = (zmk_mod_flags_t)config->mappings_raw[i * 3 + 2],
+        };
+    }
+    sort_entries(config->sorted_entries, config->entry_count);
 
 #if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
     static bool work_initialized = false;
@@ -86,7 +111,6 @@ static int layout_shift_map_init(const struct device *dev) {
     }
 #endif
 
-    const struct layout_shift_map_config *config = dev->config;
     LOG_INF("Layout shift map %s initialized (%zu entries)", dev->name, config->entry_count);
     return 0;
 }
@@ -97,10 +121,12 @@ static int layout_shift_map_init(const struct device *dev) {
     static const uint32_t layout_map_raw_##n[] = {                                                 \
         DT_FOREACH_PROP_ELEM(DT_DRV_INST(n), mappings, _RAW_ENTRY)                                \
     };                                                                                             \
+    static struct layout_shift_map_entry sorted_entries_##n[ARRAY_SIZE(layout_map_raw_##n) / 3];   \
     static struct layout_shift_map_data layout_shift_map_data_##n = {};                            \
     static const struct layout_shift_map_config layout_shift_map_config_##n = {                    \
         .mappings_raw = layout_map_raw_##n,                                                        \
         .entry_count = ARRAY_SIZE(layout_map_raw_##n) / 3,                                         \
+        .sorted_entries = sorted_entries_##n,                                                       \
     };                                                                                             \
     DEVICE_DT_INST_DEFINE(n, layout_shift_map_init, NULL,                                          \
                           &layout_shift_map_data_##n, &layout_shift_map_config_##n,                \

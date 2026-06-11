@@ -4,6 +4,7 @@
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zmk/hid.h>
+#include <dt-bindings/zmk/modifiers.h>
 
 #define _LAYOUT_SHIFT_MAP_DEV_REF(node) DEVICE_DT_GET(node),
 
@@ -16,6 +17,7 @@ struct layout_shift_map_entry {
 struct layout_shift_map_config {
     const uint32_t *mappings_raw;
     size_t entry_count;
+    struct layout_shift_map_entry *sorted_entries;
 };
 
 struct layout_shift_map_data {
@@ -32,14 +34,30 @@ static inline size_t layout_shift_map_entry_count(const struct device *dev) {
     return cfg->entry_count;
 }
 
-static inline struct layout_shift_map_entry layout_shift_map_get_entry(const struct device *dev,
-                                                                       size_t index) {
+static inline const struct layout_shift_map_entry *
+layout_shift_map_entries(const struct device *dev) {
     const struct layout_shift_map_config *cfg = dev->config;
-    return (struct layout_shift_map_entry){
-        .from_keycode = cfg->mappings_raw[index * 3],
-        .to_keycode = cfg->mappings_raw[index * 3 + 1],
-        .optional_mods = (zmk_mod_flags_t)cfg->mappings_raw[index * 3 + 2],
-    };
+    return cfg->sorted_entries;
+}
+
+static inline int layout_shift_map_find_base(const struct device *dev, uint32_t base_keycode) {
+    const struct layout_shift_map_config *cfg = dev->config;
+    const struct layout_shift_map_entry *entries = cfg->sorted_entries;
+    int lo = 0, hi = (int)cfg->entry_count - 1;
+    int result = -1;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        uint32_t mid_base = STRIP_MODS(entries[mid].from_keycode);
+        if (mid_base < base_keycode) {
+            lo = mid + 1;
+        } else if (mid_base > base_keycode) {
+            hi = mid - 1;
+        } else {
+            result = mid;
+            hi = mid - 1;
+        }
+    }
+    return result;
 }
 
 void layout_shift_map_set_active(const struct device *dev, bool active);

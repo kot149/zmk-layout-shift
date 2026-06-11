@@ -56,12 +56,16 @@ static zmk_mod_flags_t translate_embedded_mods(zmk_mod_flags_t mods, bool *chang
         zmk_mod_flags_t remaining = result;
         zmk_mod_flags_t translated = 0;
 
+        const struct layout_shift_map_entry *entries =
+            layout_shift_map_entries(layout_shift_map_devs[d]);
         size_t count = layout_shift_map_entry_count(layout_shift_map_devs[d]);
         for (size_t i = 0; i < count; i++) {
-            struct layout_shift_map_entry entry = layout_shift_map_get_entry(layout_shift_map_devs[d], i);
-            zmk_mod_flags_t from_mod = mod_keycode_to_flag(entry.from_keycode);
-            zmk_mod_flags_t to_mod = mod_keycode_to_flag(entry.to_keycode);
-            if (from_mod == 0 || to_mod == 0) {
+            zmk_mod_flags_t from_mod = mod_keycode_to_flag(entries[i].from_keycode);
+            if (from_mod == 0) {
+                continue;
+            }
+            zmk_mod_flags_t to_mod = mod_keycode_to_flag(entries[i].to_keycode);
+            if (to_mod == 0) {
                 continue;
             }
             if (remaining & from_mod) {
@@ -102,7 +106,8 @@ static struct lookup_result lookup_mapped_keycode(uint32_t input_keycode) {
     uint32_t current_keycode = input_keycode;
 
     for (size_t d = 0; d < layout_shift_map_dev_count; d++) {
-        if (!layout_shift_map_is_active(layout_shift_map_devs[d])) {
+        const struct device *map_dev = layout_shift_map_devs[d];
+        if (!layout_shift_map_is_active(map_dev)) {
             continue;
         }
 
@@ -110,34 +115,33 @@ static struct lookup_result lookup_mapped_keycode(uint32_t input_keycode) {
         zmk_mod_flags_t total_input_mods = current_mods | keycode_mods;
         uint32_t base_input = STRIP_MODS(current_keycode);
 
-        size_t count = layout_shift_map_entry_count(layout_shift_map_devs[d]);
-        for (size_t i = 0; i < count; i++) {
-            struct layout_shift_map_entry entry = layout_shift_map_get_entry(layout_shift_map_devs[d], i);
+        int idx = layout_shift_map_find_base(map_dev, base_input);
+        if (idx < 0) {
+            continue;
+        }
 
-            uint32_t base_us = STRIP_MODS(entry.from_keycode);
-            zmk_mod_flags_t us_mods = SELECT_MODS(entry.from_keycode);
+        const struct layout_shift_map_entry *entries = layout_shift_map_entries(map_dev);
+        size_t count = layout_shift_map_entry_count(map_dev);
 
-            if (base_input != base_us) {
-                continue;
-            }
-
-            zmk_mod_flags_t required_mods = us_mods & ~entry.optional_mods;
-            zmk_mod_flags_t input_required_mods = total_input_mods & ~entry.optional_mods;
+        for (size_t i = idx; i < count && STRIP_MODS(entries[i].from_keycode) == base_input; i++) {
+            zmk_mod_flags_t us_mods = SELECT_MODS(entries[i].from_keycode);
+            zmk_mod_flags_t required_mods = us_mods & ~entries[i].optional_mods;
+            zmk_mod_flags_t input_required_mods = total_input_mods & ~entries[i].optional_mods;
 
             if (required_mods != input_required_mods) {
                 continue;
             }
 
-            uint32_t target_base = STRIP_MODS(entry.to_keycode);
-            zmk_mod_flags_t target_mods = SELECT_MODS(entry.to_keycode);
-            zmk_mod_flags_t final_mods = target_mods | (total_input_mods & entry.optional_mods);
+            uint32_t target_base = STRIP_MODS(entries[i].to_keycode);
+            zmk_mod_flags_t target_mods = SELECT_MODS(entries[i].to_keycode);
+            zmk_mod_flags_t final_mods = target_mods | (total_input_mods & entries[i].optional_mods);
 
             current_keycode = (final_mods != 0) ? APPLY_MODS(final_mods, target_base) : target_base;
-            result.matched_opt_mods |= entry.optional_mods;
+            result.matched_opt_mods |= entries[i].optional_mods;
             result.matched = true;
 
             LOG_DBG("LAYOUT_SHIFT: Mapping %08X -> %08X (dev=%s, input_mods: %02X, target_mods: %02X, final: %02X)",
-                    input_keycode, current_keycode, layout_shift_map_devs[d]->name,
+                    input_keycode, current_keycode, map_dev->name,
                     total_input_mods, target_mods, final_mods);
             break;
         }
