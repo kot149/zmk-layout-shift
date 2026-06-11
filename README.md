@@ -19,8 +19,6 @@ This module defines the following behaviors:
 
 These toggle behaviors require the user to configure which layout(s) to control via the `layout-maps` property (see [Usage](#usage)). Multiple layout maps can be specified.
 
-Pre-defined per-layout toggle behaviors are also available as an optional convenience (see [Per-Layout Toggle Behaviors](#per-layout-toggle-behaviors)).
-
 ## List of Supported Layouts
 
 - **JIS**: Japanese keyboard layout
@@ -45,7 +43,7 @@ manifest:
       import: app/west.yml
     - name: zmk-layout-shift
       remote: kot149
-      revision: v1
+      revision: v2
   self:
     path: config
 ```
@@ -137,71 +135,72 @@ Use `&tog_ls`, `&tog_ls_on`, `&tog_ls_off` in your keymap to control layout shif
 
 ## Per-Layout Toggle Behaviors (Optional)
 
-Pre-defined per-layout toggle behaviors are available as a convenience. Enable them by setting `status = "okay"`:
-
-| Layout | Toggle (flip) | Turn On | Turn Off |
-|---|---|---|---|
-| JIS | `&tog_ls_jis` | `&tog_ls_jis_on` | `&tog_ls_jis_off` |
-| Dvorak | `&tog_ls_dvorak` | `&tog_ls_dvorak_on` | `&tog_ls_dvorak_off` |
-| Swap Ctrl/Cmd | `&tog_ls_swap_ctrl_cmd` | `&tog_ls_swap_ctrl_cmd_on` | `&tog_ls_swap_ctrl_cmd_off` |
-
-These are optional shortcuts — you can achieve the same result by configuring `layout-maps` on `&tog_ls` / `&tog_ls_on` / `&tog_ls_off` directly.
-
-If you need separate toggles for different layouts (e.g., one key for JIS, another for Swap Ctrl/Cmd), use the per-layout toggles in your keymap bindings. Referenced layout maps are automatically enabled:
+If you need separate toggle keys for different layouts (e.g., one key for JIS, another for Swap Ctrl/Cmd), you can define per-layout toggle behaviors in your keymap:
 
 ```dts
+#include <layout_shift_kp_override.dtsi>
+
 / {
+    behaviors {
+        tog_ls_jis: toggle_layout_shift_jis {
+            compatible = "zmk,behavior-layout-shift-toggle";
+            #binding-cells = <0>;
+            toggle-mode = "flip";
+            layout-maps = <&layout_shift_map_jis>;
+        };
+
+        tog_ls_swap: toggle_layout_shift_swap {
+            compatible = "zmk,behavior-layout-shift-toggle";
+            #binding-cells = <0>;
+            toggle-mode = "flip";
+            layout-maps = <&layout_shift_map_swap_ctrl_cmd>;
+        };
+    };
+
     keymap {
         compatible = "zmk,keymap";
 
         default_layer {
             bindings = <
-                &tog_ls_jis              // Toggle JIS layout
-                &tog_ls_swap_ctrl_cmd    // Toggle Swap Ctrl/Cmd layout
+                &tog_ls_jis     // Toggle JIS layout
+                &tog_ls_swap    // Toggle Swap Ctrl/Cmd layout
             >;
         };
     };
 };
 ```
 
+You can also define `on` / `off` variants by setting `toggle-mode` to `"on"` or `"off"`.
+
 ## Adding New Layouts
 
-### Step 1: Add Layout Map Node to `layouts.dtsi`
+You can define custom layout maps in your own keymap or `..dtsi` files.
 
-Add a new layout map node to [`dts/layouts.dtsi`](dts/layouts.dtsi):
+### Define a Layout Map Node
+
+Add a layout map node with `compatible = "zmk,layout-shift-map"`:
 
 ```dts
-/omit-if-no-ref/ layout_shift_map_colemak: layout_shift_map_colemak {
-    compatible = "zmk,layout-shift-map";
-    mappings = <
-        E  F  OPTIONAL_ALL
-        R  P  OPTIONAL_ALL
-        T  G  OPTIONAL_ALL
-        // ... add more mappings as needed
-    >;
-};
-
-behaviors {
-    /omit-if-no-ref/ tog_ls_colemak: toggle_layout_shift_colemak {
-        compatible = "zmk,behavior-layout-shift-toggle";
-        #binding-cells = <0>;
-        toggle-mode = "flip";
-        layout-maps = <&layout_shift_map_colemak>;
-    };
-    /omit-if-no-ref/ tog_ls_colemak_on: toggle_layout_shift_colemak_on {
-        compatible = "zmk,behavior-layout-shift-toggle";
-        #binding-cells = <0>;
-        toggle-mode = "on";
-        layout-maps = <&layout_shift_map_colemak>;
-    };
-    /omit-if-no-ref/ tog_ls_colemak_off: toggle_layout_shift_colemak_off {
-        compatible = "zmk,behavior-layout-shift-toggle";
-        #binding-cells = <0>;
-        toggle-mode = "off";
-        layout-maps = <&layout_shift_map_colemak>;
+/ {
+    layout_shift_map_colemak: layout_shift_map_colemak {
+        compatible = "zmk,layout-shift-map";
+        mappings = <
+            E  F  OPTIONAL_ALL
+            R  P  OPTIONAL_ALL
+            T  G  OPTIONAL_ALL
+            // ... add more mappings as needed
+        >;
     };
 };
 ```
+
+Then reference it from a toggle behavior:
+
+```dts
+&tog_ls { layout-maps = <&layout_shift_map_colemak>; };
+```
+
+Or define a dedicated toggle behavior for it (see [Per-Layout Toggle Behaviors](#per-layout-toggle-behaviors-optional)).
 
 Each mapping consists of three values: `from_keycode`, `to_keycode`, `optional_modifiers`.
 
@@ -217,7 +216,3 @@ Each mapping consists of three values: `from_keycode`, `to_keycode`, `optional_m
 References:
 - [`zmk/keys.h`](https://github.com/zmkfirmware/zmk/blob/main/app/include/dt-bindings/zmk/keys.h)
 - [`zmk/modifiers.h`](https://github.com/zmkfirmware/zmk/blob/main/app/include/dt-bindings/zmk/modifiers.h)
-
-### Step 2: Update Documentation
-
-Update this README.md to list the new layout in the "List of Supported Layouts" section and the toggle behavior tables.
