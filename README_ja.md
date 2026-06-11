@@ -6,14 +6,18 @@
 
 具体的には、現在のレイアウトシフト状態に応じてキーコードをマッピングする`&kpls` behaviorを提供します。`&kp` behaviorを`&kpls`でオーバーライドすることで、既存のキーマップを変更せずに利用でき、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)との互換性が保てます。`&kp`をオーバーライドしたくない場合は、代わりに`&kpls`を使うこともできます。
 
+複数のレイアウトを同時に有効化でき、それぞれ独立したオン/オフ状態を持ちます。
+
 ## Behavior一覧
 
 このモジュールは以下のbehaviorを定義します。
 
 - `&kpls`: 現在のレイアウトシフト状態に応じてキーコードをマッピングする、レイアウト対応版の`&kp`。例えば、`&kpls EQUAL`は通常は`=`を出力するが、JISレイアウトが有効な場合は`_`(JISレイアウトでの`=`に対応)を出力する
-- `&tog_ls`: レイアウトシフト状態のオンオフを切り替える
-- `&tog_ls_on`: レイアウトシフト状態をオンにする
-- `&tog_ls_off`: レイアウトシフト状態をオフにする
+- `&tog_ls`: レイアウトシフトマップのオンオフを切り替える（対象レイアウトは`layout-maps`プロパティで設定）
+- `&tog_ls_on`: レイアウトシフトマップをオンにする
+- `&tog_ls_off`: レイアウトシフトマップをオフにする
+
+これらのトグルbehaviorは、制御対象のレイアウトを`layout-maps`プロパティで設定する必要があります（[使用方法](#使用方法)を参照）。複数のレイアウトマップを指定できます。
 
 ## 利用可能なレイアウト一覧
 
@@ -39,24 +43,38 @@ manifest:
       import: app/west.yml
     - name: zmk-layout-shift
       remote: kot149
-      revision: v1
+      revision: v2
   self:
     path: config
 ```
 
-### 2. ターゲットレイアウトを選ぶ
+### 2. トグルbehaviorに対象レイアウトを設定する
 
-[`LAYOUT_SHIFT_TARGET_LAYOUT` choice](Kconfig)から1つ選び、`.conf`に追記します。例:
+トグルbehaviorが制御するレイアウトマップを設定します。レイアウトマップは参照されると自動的に有効化されます。`layout-maps`を省略すると、利用可能なすべてのレイアウトマップを一括制御します:
 
-```kconfig
-CONFIG_LAYOUT_SHIFT_TARGET_JIS=y # 日本語(JIS)レイアウト
+```dts
+&tog_ls { layout-maps = <&layout_shift_map_jis>; };
+&tog_ls_on { layout-maps = <&layout_shift_map_jis>; };
+&tog_ls_off { layout-maps = <&layout_shift_map_jis>; };
 ```
 
-または
+利用可能なレイアウトマップノード:
 
-```kconfig
-CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y # Dvorakレイアウト
+| ノードラベル | レイアウト |
+|---|---|
+| `layout_shift_map_jis` | JIS |
+| `layout_shift_map_dvorak` | Dvorak |
+| `layout_shift_map_swap_ctrl_cmd` | Ctrl/Cmd入れ替え |
+
+1つのトグルで複数のレイアウトを制御するには、複数のphandleを指定します:
+
+```dts
+&tog_ls { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
+&tog_ls_on { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
+&tog_ls_off { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
 ```
+
+> **Note:** 複数のレイアウトマップが同時に有効な場合、マップはdevicetreeの宣言順（`layouts.dtsi`）に逐次適用されます。あるマップの出力が次のマップの入力になるため、マップ1が`A → B`、マップ2が`B → C`にマッピングする場合、最終出力は`C`になります。
 
 ### 3. `layout_shift_kp_override.dtsi`をincludeして、`&kp` behaviorをオーバーライドする
 
@@ -70,12 +88,14 @@ CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y # Dvorakレイアウト
 > このincludeは`#include <behaviors.dtsi>`やその他のinclude \*\***よりも下**\*\*に追加する必要があります。
 > しかし、[Keymap Editor](https://nickcoutsos.github.io/keymap-editor/)を使用すると、勝手にincludeの順序が並べ替わります。これを避けるには、[`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi)から`&kp`の定義を直接キーマップファイルにコピペしてください。
 
-### 4. `&tog_ls` / `&tog_ls_on` / `&tog_ls_off`でレイアウトシフト状態を切り替える
+### 4. トグルbehaviorでレイアウトシフト状態を切り替える
 
-キーマップに`&tog_ls` / `&tog_ls_on` / `&tog_ls_off`を追加し、レイアウトシフト状態を切り替えます。それに応じて、`&kp`はレイアウトシフト状態に応じたキーコードを出力します。
+キーマップに`&tog_ls` / `&tog_ls_on` / `&tog_ls_off`を追加し、レイアウトシフト状態を切り替えます。`&kp`は有効なレイアウトシフトマップに応じたキーコードを出力します。
 
 ```dts
 #include <layout_shift_kp_override.dtsi>
+
+&tog_ls { layout-maps = <&layout_shift_map_jis>; };
 
 / {
     keymap {
@@ -84,9 +104,7 @@ CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y # Dvorakレイアウト
         default_layer {
             bindings = <
                 &kp EQUAL      // 通常は=を出力するが、JISレイアウトでは_(JISレイアウトでの=に対応)を出力する
-                &tog_ls        // レイアウトシフトのオン/オフを切り替え
-                &tog_ls_on     // レイアウトシフトをオンにする
-                &tog_ls_off    // レイアウトシフトをオフにする
+                &tog_ls         // JISレイアウトシフトのオン/オフを切り替え
             >;
         };
     };
@@ -97,8 +115,9 @@ CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y # Dvorakレイアウト
 > `&kp`をオーバーライドしたくない場合は、[`layout_shift_kp_override.dtsi`](dts/layout_shift_kp_override.dtsi)の代わりに[`layout_shift.dtsi`](dts/layout_shift.dtsi)を`#include`し、`&kpls`を代わりに使います:
 >
 > ```dts
-> // #include <layout_shift_kp_override.dtsi>
 > #include <layout_shift.dtsi>
+>
+> &tog_ls { layout-maps = <&layout_shift_map_jis>; };
 >
 > / {
 >     keymap {
@@ -107,93 +126,93 @@ CONFIG_LAYOUT_SHIFT_TARGET_DVORAK=y # Dvorakレイアウト
 >         default_layer {
 >             bindings = <
 >                 &kpls EQUAL    // 通常は=を出力するが、JISレイアウトでは_(JISレイアウトでの=に対応)を出力する
->                 &tog_ls        // レイアウトシフトのオン/オフを切り替え
->                 &tog_ls_on     // レイアウトシフトをオンにする
->                 &tog_ls_off    // レイアウトシフトをオフにする
+>                 &tog_ls         // JISレイアウトシフトのオン/オフを切り替え
 >             >;
 >         };
 >     };
 > };
 > ```
 
+## レイアウト別トグルbehavior（オプション）
+
+レイアウトごとに個別のトグルキーが必要な場合（例: JIS用のキーとCtrl/Cmd入れ替え用のキーを分けたい場合）、キーマップ内でレイアウト別のトグルbehaviorを定義できます:
+
+```dts
+#include <layout_shift_kp_override.dtsi>
+
+/ {
+    behaviors {
+        tog_ls_jis: toggle_layout_shift_jis {
+            compatible = "zmk,behavior-layout-shift-toggle";
+            #binding-cells = <0>;
+            toggle-mode = "flip";
+            layout-maps = <&layout_shift_map_jis>;
+        };
+
+        tog_ls_swap: toggle_layout_shift_swap {
+            compatible = "zmk,behavior-layout-shift-toggle";
+            #binding-cells = <0>;
+            toggle-mode = "flip";
+            layout-maps = <&layout_shift_map_swap_ctrl_cmd>;
+        };
+    };
+
+    keymap {
+        compatible = "zmk,keymap";
+
+        default_layer {
+            bindings = <
+                &tog_ls_jis     // JISレイアウトを切り替え
+                &tog_ls_swap    // Ctrl/Cmd入れ替えレイアウトを切り替え
+            >;
+        };
+    };
+};
+```
+
+`toggle-mode`を`"on"`または`"off"`に設定することで、オン/オフ専用のバリアントも定義できます。
+
 ## 新しいレイアウトの追加手順
 
-### Step 1: Kconfigオプションの追加
+カスタムレイアウトマップは、キーマップや`.dtsi`ファイル内で定義できます。
 
-[`Kconfig`](Kconfig)の`choice`ブロックに新しいオプションを追加する。
+### レイアウトマップノードの定義
 
-```kconfig
-choice LAYOUT_SHIFT_TARGET_LAYOUT
-    prompt "Target keyboard layout"
-    default LAYOUT_SHIFT_TARGET_JIS
+`compatible = "zmk,layout-shift-map"`を持つレイアウトマップノードを追加します:
 
-config LAYOUT_SHIFT_TARGET_JIS
-    bool "Japanese (JIS)"
-
-config LAYOUT_SHIFT_TARGET_DVORAK
-    bool "Dvorak"
-
-...
-
-config LAYOUT_SHIFT_TARGET_COLEMAK    # この行を追加
-    bool "Colemak"                    # この行を追加
-
-endchoice
-```
-
-### Step 2: レイアウト定義ファイルの作成
-
-[`src/layouts/`](src/layouts/)に新しいレイアウトファイル(例:`layout_colemak.h`)を作成する。
-
-```c
-#ifdef CONFIG_LAYOUT_SHIFT_TARGET_COLEMAK
-#define LAYOUT_DEFINED
-// Colemak keyboard layout mappings
-// Maps US QWERTY keycodes to their Colemak equivalents
-static const struct keycode_mapping layout_map[] = {
-    /* from -> to, optional_modifiers */
-    {E, F, OPTIONAL_ALL},                   // E -> F (all modifiers optional for letters)
-    {R, P, OPTIONAL_ALL},                   // R -> P (all modifiers optional for letters)
-    {T, G, OPTIONAL_ALL},                   // T -> G (all modifiers optional for letters)
-    // ... add more mappings as needed
-    // For symbols, you might want to require certain modifiers:
-    // {COMMA, W, OPTIONAL_CTRL | OPTIONAL_ALT},  // , -> W (Shift required, Ctrl/Alt optional)
+```dts
+/ {
+    layout_shift_map_colemak: layout_shift_map_colemak {
+        compatible = "zmk,layout-shift-map";
+        mappings = <
+            E  F  OPTIONAL_ALL
+            R  P  OPTIONAL_ALL
+            T  G  OPTIONAL_ALL
+            // ... 必要に応じてマッピングを追加
+        >;
+    };
 };
-#endif
 ```
+
+トグルbehaviorから参照します:
+
+```dts
+&tog_ls { layout-maps = <&layout_shift_map_colemak>; };
+```
+
+または、専用のトグルbehaviorを定義します（[レイアウト別トグルbehavior](#レイアウト別トグルbehaviorオプション)を参照）。
+
+各マッピングは3つの値で構成されます: `変換元キーコード`、`変換先キーコード`、`オプション修飾キー`。
 
 **修飾キー制御オプション:**
-- `OPTIONAL_NONE`(0):すべての修飾キーが必須(完全一致)
+- `OPTIONAL_NONE`(0): すべての修飾キーが必須(完全一致)
 - `OPTIONAL_SHIFT`: Shiftキーは任意
 - `OPTIONAL_CTRL`: Ctrlキーは任意
 - `OPTIONAL_ALT`: Altキーは任意
 - `OPTIONAL_GUI`: GUI(Windows/Cmd)キーは任意
-- `OPTIONAL_ALL`(0xFF):すべての修飾キーが任意
+- `OPTIONAL_ALL`(0xFF): すべての修飾キーが任意
 - カスタムの組み合わせ: `OPTIONAL_CTRL | OPTIONAL_ALT`(Ctrl/Altは任意、Shift/GUIは必須)
 
 参考:
 - [`zmk/keys.h`](https://github.com/zmkfirmware/zmk/blob/main/app/include/dt-bindings/zmk/keys.h)
 - [`zmk/modifiers.h`](https://github.com/zmkfirmware/zmk/blob/main/app/include/dt-bindings/zmk/modifiers.h)
-
-### Step 3: Indexファイルへの追加
-
-[`src/layouts/index.h`](src/layouts/index.h)にinclude文を追加する。
-
-```c
-// Layout index - includes all available layout definitions
-// Each layout file contains its own conditional compilation directives
-
-#include "layout_jis.h"
-#include "layout_dvorak.h"
-...
-#include "layout_colemak.h"    // この行を追加
-
-// Ensure at least one layout is defined
-#ifndef LAYOUT_DEFINED
-#error "No target layout selected. Please select a layout in Kconfig."
-#endif
-```
-
-### Step 4: ドキュメントの更新
-
-「利用可能なレイアウト一覧」に新しいレイアウトを追記するため、[README.md](README.md)を更新してください。
