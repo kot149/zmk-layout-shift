@@ -1,0 +1,57 @@
+#include <dt-bindings/zmk/keys.h>
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/kscan_mock.h>
+#include <layout_shift.dtsi>
+
+/ {
+    behaviors {
+        tog_jis: toggle_jis {
+            compatible = "zmk,behavior-layout-shift-toggle";
+            #binding-cells = <0>;
+            toggle-mode = "flip";
+            layout-maps = <&layout_shift_map_jis>;
+        };
+        tog_dvk: toggle_dvorak {
+            compatible = "zmk,behavior-layout-shift-toggle";
+            #binding-cells = <0>;
+            toggle-mode = "flip";
+            layout-maps = <&layout_shift_map_dvorak>;
+        };
+    };
+};
+
+&kscan {
+    events = <
+        ZMK_MOCK_PRESS(0,0,10)
+        ZMK_MOCK_RELEASE(0,0,10)
+        ZMK_MOCK_PRESS(0,1,10)
+        ZMK_MOCK_RELEASE(0,1,10)
+        ZMK_MOCK_PRESS(1,1,10)
+        ZMK_MOCK_RELEASE(1,1,10)
+        ZMK_MOCK_PRESS(1,0,10)
+        ZMK_MOCK_RELEASE(1,0,10)
+        ZMK_MOCK_PRESS(0,1,10)
+        ZMK_MOCK_RELEASE(0,1,10)
+        ZMK_MOCK_PRESS(1,1,10)
+        ZMK_MOCK_RELEASE(1,1,10)
+        ZMK_MOCK_PRESS(0,0,10)
+        ZMK_MOCK_RELEASE(0,0,10)
+        ZMK_MOCK_PRESS(0,1,10)
+        ZMK_MOCK_RELEASE(0,1,10)
+        ZMK_MOCK_PRESS(1,1,10)
+        ZMK_MOCK_RELEASE(1,1,10)
+    >;
+};
+
+/ {
+    keymap {
+        compatible = "zmk,keymap";
+
+        default_layer {
+            bindings = <
+                &tog_jis &kpls EQUAL
+                &tog_dvk &kpls Q
+            >;
+        };
+    };
+};

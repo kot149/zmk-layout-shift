@@ -4,6 +4,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/settings/settings.h>
+#include <stdio.h>
 #include <string.h>
 #include "layout_shift_map.h"
 
