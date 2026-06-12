@@ -32,12 +32,14 @@ static void sort_devs_by_priority(void) {
     for (size_t i = 1; i < layout_shift_map_dev_count; i++) {
         const struct device *tmp = layout_shift_map_devs[i];
         const struct layout_shift_map_config *tmp_cfg = tmp->config;
+        const struct layout_shift_map_data *tmp_data = tmp->data;
         int j = (int)i - 1;
         while (j >= 0) {
             const struct layout_shift_map_config *j_cfg = layout_shift_map_devs[j]->config;
+            const struct layout_shift_map_data *j_data = layout_shift_map_devs[j]->data;
             bool swap = (j_cfg->priority > tmp_cfg->priority) ||
                         (j_cfg->priority == tmp_cfg->priority &&
-                         j_cfg->dt_order > tmp_cfg->dt_order);
+                         j_data->declaration_index > tmp_data->declaration_index);
             if (!swap) {
                 break;
             }
@@ -48,11 +50,13 @@ static void sort_devs_by_priority(void) {
     }
 }
 
+/* Runs after all device init (POST_KERNEL) completes, so declaration_index
+ * is populated before any consumer iterates layout_shift_map_devs[]. */
 static int layout_shift_map_post_init(void) {
     sort_devs_by_priority();
     for (size_t i = 0; i < layout_shift_map_dev_count; i++) {
         const struct layout_shift_map_config *cfg = layout_shift_map_devs[i]->config;
-        LOG_INF("Layout shift map order [%zu]: %s (priority=%d)",
+        LOG_DBG("Layout shift map order [%zu]: %s (priority=%d)",
                 i, layout_shift_map_devs[i]->name, cfg->priority);
     }
     return 0;
@@ -122,16 +126,9 @@ SETTINGS_STATIC_HANDLER_DEFINE(layout_shift, "layout_shift", NULL,
 
 static int layout_shift_map_init(const struct device *dev) {
     struct layout_shift_map_data *data = dev->data;
-    struct layout_shift_map_config *config = (struct layout_shift_map_config *)dev->config;
+    const struct layout_shift_map_config *config = dev->config;
 
     data->active = false;
-
-    for (size_t i = 0; i < layout_shift_map_dev_count; i++) {
-        if (layout_shift_map_devs[i] == dev) {
-            config->dt_order = i;
-            break;
-        }
-    }
 
     for (size_t i = 0; i < config->entry_count; i++) {
         config->sorted_entries[i] = (struct layout_shift_map_entry){
@@ -161,13 +158,14 @@ static int layout_shift_map_init(const struct device *dev) {
         DT_FOREACH_PROP_ELEM(DT_DRV_INST(n), mappings, _RAW_ENTRY)                                \
     };                                                                                             \
     static struct layout_shift_map_entry sorted_entries_##n[ARRAY_SIZE(layout_map_raw_##n) / 3];   \
-    static struct layout_shift_map_data layout_shift_map_data_##n = {};                            \
-    static struct layout_shift_map_config layout_shift_map_config_##n = {                          \
+    static struct layout_shift_map_data layout_shift_map_data_##n = {                              \
+        .declaration_index = n,                                                                    \
+    };                                                                                             \
+    static const struct layout_shift_map_config layout_shift_map_config_##n = {                    \
         .mappings_raw = layout_map_raw_##n,                                                        \
         .entry_count = ARRAY_SIZE(layout_map_raw_##n) / 3,                                         \
         .sorted_entries = sorted_entries_##n,                                                       \
         .priority = DT_INST_PROP_OR(n, priority, 0),                                                \
-        .dt_order = 0,                                                                              \
     };                                                                                             \
     DEVICE_DT_INST_DEFINE(n, layout_shift_map_init, NULL,                                          \
                           &layout_shift_map_data_##n, &layout_shift_map_config_##n,                \

@@ -19,11 +19,11 @@ struct layout_shift_map_config {
     size_t entry_count;
     struct layout_shift_map_entry *sorted_entries;
     int priority;
-    size_t dt_order;
 };
 
 struct layout_shift_map_data {
     bool active;
+    size_t declaration_index;
 };
 
 static inline bool layout_shift_map_is_active(const struct device *dev) {
