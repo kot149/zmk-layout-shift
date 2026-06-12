@@ -76,7 +76,14 @@ manifest:
 &tog_ls_off { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
 ```
 
-> **Note:** 複数のレイアウトマップが同時に有効な場合、マップはdevicetreeの宣言順（`layouts.dtsi`）に逐次適用されます。あるマップの出力が次のマップの入力になるため、マップ1が`A → B`、マップ2が`B → C`にマッピングする場合、最終出力は`C`になります。
+> **Note:** 複数のレイアウトマップが同時に有効な場合、マップは逐次適用されます。デフォルトではdevicetreeの宣言順（`layouts.dtsi`）に適用され、あるマップの出力が次のマップの入力になります。マップ1が`A → B`、マップ2が`B → C`にマッピングする場合、最終出力は`C`になります。
+>
+> 適用順を明示的に制御したい場合は、各レイアウトマップノードに`priority`プロパティを設定してください。値が小さいものから先に適用されます。同値の場合はdevicetree宣言順にフォールバックします。
+>
+> ```dts
+> &layout_shift_map_jis            { priority = <10>; };
+> &layout_shift_map_swap_ctrl_cmd  { priority = <20>; };  // JISの後に適用
+> ```
 
 ### 3. `layout_shift_kp_override.dtsi`をincludeして、`&kp` behaviorをオーバーライドする
 

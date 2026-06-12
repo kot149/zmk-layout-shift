@@ -18,6 +18,8 @@ struct layout_shift_map_config {
     const uint32_t *mappings_raw;
     size_t entry_count;
     struct layout_shift_map_entry *sorted_entries;
+    int priority;
+    size_t dt_order;
 };
 
 struct layout_shift_map_data {
@@ -64,7 +66,7 @@ void layout_shift_map_set_active(const struct device *dev, bool active);
 void layout_shift_map_toggle(const struct device *dev);
 
 #if DT_HAS_COMPAT_STATUS_OKAY(zmk_layout_shift_map)
-extern const struct device *const layout_shift_map_devs[];
+extern const struct device *layout_shift_map_devs[];
 extern const size_t layout_shift_map_dev_count;
 #else
 #define layout_shift_map_devs NULL

@@ -76,7 +76,14 @@ You can control multiple layouts with a single toggle by specifying multiple pha
 &tog_ls_off { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
 ```
 
-> **Note:** When multiple layout maps are active simultaneously, maps are applied sequentially in devicetree declaration order (`layouts.dtsi`). The output of one map becomes the input to the next, so if map 1 maps `A → B` and map 2 maps `B → C`, the final output is `C`.
+> **Note:** When multiple layout maps are active simultaneously, maps are applied sequentially. By default, they are applied in devicetree declaration order (`layouts.dtsi`). The output of one map becomes the input to the next, so if map 1 maps `A → B` and map 2 maps `B → C`, the final output is `C`.
+>
+> To control the application order explicitly, set the `priority` property on each layout map node — smaller values are applied first. Ties fall back to devicetree declaration order.
+>
+> ```dts
+> &layout_shift_map_jis            { priority = <10>; };
+> &layout_shift_map_swap_ctrl_cmd  { priority = <20>; };  // applied after JIS
+> ```
 
 ### 3. Include `layout_shift_kp_override.dtsi` to Override `&kp` Behavior
 

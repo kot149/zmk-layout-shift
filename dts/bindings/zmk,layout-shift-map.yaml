@@ -17,3 +17,10 @@ properties:
         - from_keycode: The US layout keycode to match
         - to_keycode: The target layout keycode to output
         - optional_modifiers: Bitmask of modifiers that are optional during matching
+  priority:
+    type: int
+    default: 0
+    description: |
+      Application order when multiple layout shift maps are active simultaneously.
+      Maps with smaller priority values are applied first; the output of one map
+      becomes the input to the next. Ties fall back to devicetree declaration order.

@@ -23,10 +23,42 @@ static void sort_entries(struct layout_shift_map_entry *entries, size_t count) {
     }
 }
 
-const struct device *const layout_shift_map_devs[] = {
+const struct device *layout_shift_map_devs[] = {
     DT_FOREACH_STATUS_OKAY(zmk_layout_shift_map, _LAYOUT_SHIFT_MAP_DEV_REF)
 };
 const size_t layout_shift_map_dev_count = ARRAY_SIZE(layout_shift_map_devs);
+
+static void sort_devs_by_priority(void) {
+    for (size_t i = 1; i < layout_shift_map_dev_count; i++) {
+        const struct device *tmp = layout_shift_map_devs[i];
+        const struct layout_shift_map_config *tmp_cfg = tmp->config;
+        int j = (int)i - 1;
+        while (j >= 0) {
+            const struct layout_shift_map_config *j_cfg = layout_shift_map_devs[j]->config;
+            bool swap = (j_cfg->priority > tmp_cfg->priority) ||
+                        (j_cfg->priority == tmp_cfg->priority &&
+                         j_cfg->dt_order > tmp_cfg->dt_order);
+            if (!swap) {
+                break;
+            }
+            layout_shift_map_devs[j + 1] = layout_shift_map_devs[j];
+            j--;
+        }
+        layout_shift_map_devs[j + 1] = tmp;
+    }
+}
+
+static int layout_shift_map_post_init(void) {
+    sort_devs_by_priority();
+    for (size_t i = 0; i < layout_shift_map_dev_count; i++) {
+        const struct layout_shift_map_config *cfg = layout_shift_map_devs[i]->config;
+        LOG_INF("Layout shift map order [%zu]: %s (priority=%d)",
+                i, layout_shift_map_devs[i]->name, cfg->priority);
+    }
+    return 0;
+}
+
+SYS_INIT(layout_shift_map_post_init, APPLICATION, 0);
 
 #if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
 static struct k_work_delayable layout_shift_save_work;
@@ -90,9 +122,16 @@ SETTINGS_STATIC_HANDLER_DEFINE(layout_shift, "layout_shift", NULL,
 
 static int layout_shift_map_init(const struct device *dev) {
     struct layout_shift_map_data *data = dev->data;
-    const struct layout_shift_map_config *config = dev->config;
+    struct layout_shift_map_config *config = (struct layout_shift_map_config *)dev->config;
 
     data->active = false;
+
+    for (size_t i = 0; i < layout_shift_map_dev_count; i++) {
+        if (layout_shift_map_devs[i] == dev) {
+            config->dt_order = i;
+            break;
+        }
+    }
 
     for (size_t i = 0; i < config->entry_count; i++) {
         config->sorted_entries[i] = (struct layout_shift_map_entry){
@@ -123,10 +162,12 @@ static int layout_shift_map_init(const struct device *dev) {
     };                                                                                             \
     static struct layout_shift_map_entry sorted_entries_##n[ARRAY_SIZE(layout_map_raw_##n) / 3];   \
     static struct layout_shift_map_data layout_shift_map_data_##n = {};                            \
-    static const struct layout_shift_map_config layout_shift_map_config_##n = {                    \
+    static struct layout_shift_map_config layout_shift_map_config_##n = {                          \
         .mappings_raw = layout_map_raw_##n,                                                        \
         .entry_count = ARRAY_SIZE(layout_map_raw_##n) / 3,                                         \
         .sorted_entries = sorted_entries_##n,                                                       \
+        .priority = DT_INST_PROP_OR(n, priority, 0),                                                \
+        .dt_order = 0,                                                                              \
     };                                                                                             \
     DEVICE_DT_INST_DEFINE(n, layout_shift_map_init, NULL,                                          \
                           &layout_shift_map_data_##n, &layout_shift_map_config_##n,                \
