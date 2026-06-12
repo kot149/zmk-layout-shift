@@ -10,11 +10,9 @@ include: zero_param.yaml
 properties:
   layout-maps:
     type: phandles
-    required: false
+    required: true
     description: |
-      References to layout-shift-map nodes.
-      If set, this toggle controls the specified layout(s).
-      If not set, all layout maps are toggled.
+      References to layout-shift-map nodes to control.
   toggle-mode:
     type: string
     required: false

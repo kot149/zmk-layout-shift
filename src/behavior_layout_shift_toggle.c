@@ -44,14 +44,8 @@ static int on_layout_shift_toggle_binding_pressed(struct zmk_behavior_binding *b
     const struct device *dev = zmk_behavior_get_binding(binding->behavior_dev);
     const struct behavior_layout_shift_toggle_config *config = dev->config;
 
-    if (config->layout_map_count > 0) {
-        for (size_t i = 0; i < config->layout_map_count; i++) {
-            apply_toggle(config->layout_maps[i], config->toggle_mode);
-        }
-    } else {
-        for (size_t i = 0; i < layout_shift_map_dev_count; i++) {
-            apply_toggle(layout_shift_map_devs[i], config->toggle_mode);
-        }
+    for (size_t i = 0; i < config->layout_map_count; i++) {
+        apply_toggle(config->layout_maps[i], config->toggle_mode);
     }
 
     return ZMK_BEHAVIOR_OPAQUE;
@@ -86,18 +80,14 @@ static int layout_shift_toggle_init(const struct device *dev) {
 // Only define behavior instances if devicetree nodes exist
 #if DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT)
 #define LAYOUT_SHIFT_TOGGLE_INST(n) \
-    COND_CODE_1(DT_INST_NODE_HAS_PROP(n, layout_maps), \
-        (static const struct device *toggle_layout_maps_##n[] = { \
-            DT_INST_FOREACH_PROP_ELEM(n, layout_maps, _TOGGLE_MAP_DEV) \
-        };), \
-        ()) \
+    static const struct device *toggle_layout_maps_##n[] = { \
+        DT_INST_FOREACH_PROP_ELEM(n, layout_maps, _TOGGLE_MAP_DEV) \
+    }; \
     static struct behavior_layout_shift_toggle_data behavior_layout_shift_toggle_data_##n = {}; \
     static const struct behavior_layout_shift_toggle_config behavior_layout_shift_toggle_config_##n = { \
         .toggle_mode = TOGGLE_MODE_FROM_STR(DT_INST_PROP_OR(n, toggle_mode, "flip")), \
-        .layout_maps = COND_CODE_1(DT_INST_NODE_HAS_PROP(n, layout_maps), \
-            (toggle_layout_maps_##n), (NULL)), \
-        .layout_map_count = COND_CODE_1(DT_INST_NODE_HAS_PROP(n, layout_maps), \
-            (DT_INST_PROP_LEN(n, layout_maps)), (0)), \
+        .layout_maps = toggle_layout_maps_##n, \
+        .layout_map_count = DT_INST_PROP_LEN(n, layout_maps), \
     }; \
     BEHAVIOR_DT_INST_DEFINE(n, layout_shift_toggle_init, NULL, \
                             &behavior_layout_shift_toggle_data_##n, \

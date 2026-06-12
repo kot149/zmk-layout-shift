@@ -13,11 +13,11 @@ Multiple layouts can be enabled simultaneously, each with independent on/off sta
 This module defines the following behaviors:
 
 - `&kpls`: A layout-aware version of `&kp`; maps keycodes according to active layout shift maps. For example, `&kpls EQUAL` normally outputs `=`, but outputs `_` (which is `=` in JIS layout) when JIS layout is enabled.
-- `&tog_ls`: Toggles layout shift maps on/off (configure target layout(s) via `layout-maps` property)
+- `&tog_ls`: Toggles layout shift maps on/off
 - `&tog_ls_on`: Turns on layout shift maps
 - `&tog_ls_off`: Turns off layout shift maps
 
-These toggle behaviors require the user to configure which layout(s) to control via the `layout-maps` property (see [Usage](#usage)). Multiple layout maps can be specified.
+These toggle behaviors require the `layout-maps` property to specify which layout(s) to control (see [Usage](#usage)). Multiple layout maps can be specified.
 
 ## List of Supported Layouts
 
