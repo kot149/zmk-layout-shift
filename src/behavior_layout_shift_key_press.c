@@ -137,6 +137,8 @@ static struct lookup_result lookup_mapped_keycode(uint32_t input_keycode) {
             zmk_mod_flags_t final_mods = target_mods | (total_input_mods & entries[i].optional_mods);
 
             current_keycode = (final_mods != 0) ? APPLY_MODS(final_mods, target_base) : target_base;
+            // OR-accumulate: each map independently declares optional modifiers for its
+            // stage; all remain optional across the whole chain.
             result.matched_opt_mods |= entries[i].optional_mods;
             result.matched = true;
 
@@ -154,6 +156,8 @@ static struct lookup_result lookup_mapped_keycode(uint32_t input_keycode) {
 
     // No base-keycode mapping found. Try translating modifiers embedded in the keycode
     // (e.g. LCTL(C) -> LGUI(C) when swapping Ctrl/Cmd) using modifier-to-modifier entries.
+    // result.matched intentionally stays false: embedded-mod translation only remaps
+    // modifier bits inside the keycode, so physical modifier masking is not needed.
     zmk_mod_flags_t keycode_mods = SELECT_MODS(input_keycode);
     if (keycode_mods != 0) {
         bool changed = false;
