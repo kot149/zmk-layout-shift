@@ -66,6 +66,8 @@ manifest:
 | `layout_shift_map_dvorak` | Dvorak |
 | `layout_shift_map_swap_ctrl_cmd` | Ctrl/Cmd入れ替え |
 
+独自のカスタムレイアウトマップを定義することもできます。詳細は[新しいレイアウトの追加手順](#新しいレイアウトの追加手順)を参照してください。
+
 1つのトグルで複数のレイアウトを制御するには、複数のphandleを指定します:
 
 ```dts

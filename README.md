@@ -66,6 +66,8 @@ Available layout map nodes:
 | `layout_shift_map_dvorak` | Dvorak |
 | `layout_shift_map_swap_ctrl_cmd` | Swap Ctrl / Cmd |
 
+You can also define your own custom layout maps. See [Adding New Layouts](#adding-new-layouts) for details.
+
 You can control multiple layouts with a single toggle by specifying multiple phandles:
 
 ```dts
