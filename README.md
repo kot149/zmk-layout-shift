@@ -19,11 +19,13 @@ This module defines the following behaviors:
 
 These toggle behaviors require the `layout-maps` property to specify which layout(s) to control (see [Usage](#usage)). Multiple layout maps can be specified.
 
-## List of Supported Layouts
+## List of Pre-Defined Layouts
 
 - **JIS**: Japanese keyboard layout
 - **Dvorak**: Dvorak keyboard layout
 - **Swap Ctrl and Cmd**: Swap Ctrl / Cmd for Windows / Mac
+
+You can also define your own custom layout maps. See [Adding New Layouts](#adding-new-layouts) for details.
 
 ## Usage
 
@@ -183,7 +185,7 @@ You can also define `on` / `off` variants by setting `toggle-mode` to `"on"` or 
 
 ## Adding New Layouts
 
-You can define custom layout maps in your own keymap or `..dtsi` files.
+You can define custom layout maps in your own keymap or `.dtsi` files.
 
 ### Define a Layout Map Node
 
