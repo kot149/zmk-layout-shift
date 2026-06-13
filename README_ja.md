@@ -198,9 +198,9 @@ manifest:
     layout_shift_map_colemak: layout_shift_map_colemak {
         compatible = "zmk,layout-shift-map";
         mappings = <
-            E  F  OPTIONAL_ALL
-            R  P  OPTIONAL_ALL
-            T  G  OPTIONAL_ALL
+            E  F  LAYOUT_SHIFT_OPTIONAL_ALL
+            R  P  LAYOUT_SHIFT_OPTIONAL_ALL
+            T  G  LAYOUT_SHIFT_OPTIONAL_ALL
             // ... 必要に応じてマッピングを追加
         >;
     };
@@ -218,13 +218,13 @@ manifest:
 各マッピングは3つの値で構成されます: `変換元キーコード`、`変換先キーコード`、`オプション修飾キー`。
 
 **修飾キー制御オプション:**
-- `OPTIONAL_NONE`(0): すべての修飾キーが必須(完全一致)
-- `OPTIONAL_SHIFT`: Shiftキーは任意
-- `OPTIONAL_CTRL`: Ctrlキーは任意
-- `OPTIONAL_ALT`: Altキーは任意
-- `OPTIONAL_GUI`: GUI(Windows/Cmd)キーは任意
-- `OPTIONAL_ALL`(0xFF): すべての修飾キーが任意
-- カスタムの組み合わせ: `OPTIONAL_CTRL | OPTIONAL_ALT`(Ctrl/Altは任意、Shift/GUIは必須)
+- `LAYOUT_SHIFT_OPTIONAL_NONE`(0): すべての修飾キーが必須(完全一致)
+- `LAYOUT_SHIFT_OPTIONAL_SHIFT`: Shiftキーは任意
+- `LAYOUT_SHIFT_OPTIONAL_CTRL`: Ctrlキーは任意
+- `LAYOUT_SHIFT_OPTIONAL_ALT`: Altキーは任意
+- `LAYOUT_SHIFT_OPTIONAL_GUI`: GUI(Windows/Cmd)キーは任意
+- `LAYOUT_SHIFT_OPTIONAL_ALL`(0xFF): すべての修飾キーが任意
+- カスタムの組み合わせ: `LAYOUT_SHIFT_OPTIONAL_CTRL | LAYOUT_SHIFT_OPTIONAL_ALT`(Ctrl/Altは任意、Shift/GUIは必須)
 
 参考:
 - [`zmk/keys.h`](https://github.com/zmkfirmware/zmk/blob/main/app/include/dt-bindings/zmk/keys.h)

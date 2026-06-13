@@ -196,9 +196,9 @@ Add a layout map node with `compatible = "zmk,layout-shift-map"`:
     layout_shift_map_colemak: layout_shift_map_colemak {
         compatible = "zmk,layout-shift-map";
         mappings = <
-            E  F  OPTIONAL_ALL
-            R  P  OPTIONAL_ALL
-            T  G  OPTIONAL_ALL
+            E  F  LAYOUT_SHIFT_OPTIONAL_ALL
+            R  P  LAYOUT_SHIFT_OPTIONAL_ALL
+            T  G  LAYOUT_SHIFT_OPTIONAL_ALL
             // ... add more mappings as needed
         >;
     };
@@ -216,13 +216,13 @@ Or define a dedicated toggle behavior for it (see [Per-Layout Toggle Behaviors](
 Each mapping consists of three values: `from_keycode`, `to_keycode`, `optional_modifiers`.
 
 **Optional Modifier Control Options:**
-- `OPTIONAL_NONE` (0): All modifiers required (exact match)
-- `OPTIONAL_SHIFT`: Shift keys are optional during matching
-- `OPTIONAL_CTRL`: Ctrl keys are optional during matching
-- `OPTIONAL_ALT`: Alt keys are optional during matching
-- `OPTIONAL_GUI`: GUI (Windows/Cmd) keys are optional during matching
-- `OPTIONAL_ALL` (0xFF): All modifiers optional during matching
-- Custom combinations: `OPTIONAL_CTRL | OPTIONAL_ALT` (Ctrl/Alt optional, Shift/GUI required)
+- `LAYOUT_SHIFT_OPTIONAL_NONE` (0): All modifiers required (exact match)
+- `LAYOUT_SHIFT_OPTIONAL_SHIFT`: Shift keys are optional during matching
+- `LAYOUT_SHIFT_OPTIONAL_CTRL`: Ctrl keys are optional during matching
+- `LAYOUT_SHIFT_OPTIONAL_ALT`: Alt keys are optional during matching
+- `LAYOUT_SHIFT_OPTIONAL_GUI`: GUI (Windows/Cmd) keys are optional during matching
+- `LAYOUT_SHIFT_OPTIONAL_ALL` (0xFF): All modifiers optional during matching
+- Custom combinations: `LAYOUT_SHIFT_OPTIONAL_CTRL | LAYOUT_SHIFT_OPTIONAL_ALT` (Ctrl/Alt optional, Shift/GUI required)
 
 References:
 - [`zmk/keys.h`](https://github.com/zmkfirmware/zmk/blob/main/app/include/dt-bindings/zmk/keys.h)
