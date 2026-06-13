@@ -107,6 +107,8 @@ manifest:
 #include <layout_shift_kp_override.dtsi>
 
 &tog_ls { layout-maps = <&layout_shift_map_us_to_jis>; };
+&tog_ls_on { layout-maps = <&layout_shift_map_us_to_jis>; };
+&tog_ls_off { layout-maps = <&layout_shift_map_us_to_jis>; };
 
 / {
     keymap {
@@ -114,9 +116,10 @@ manifest:
 
         default_layer {
             bindings = <
-                &kp EQUAL      // 通常は=を出力するが、US -> JISレイアウトシフトが有効なときは
-                               // _(JISレイアウトでの=に対応)を出力する
-                &tog_ls        // US ->JISレイアウトシフトのオン/オフを切り替え
+                &kp EQUAL    // 通常は=を出力するが、US -> JISレイアウトシフトが有効なときは_(JISレイアウトでの=に対応)を出力する
+                &tog_ls      // US ->JISレイアウトシフトのオン/オフを切り替え
+                &tog_ls_on   // US -> JISレイアウトシフトをオンにする
+                &tog_ls_off  // US -> JISレイアウトシフトをオフにする
             >;
         };
     };
@@ -130,6 +133,8 @@ manifest:
 > #include <layout_shift.dtsi>
 >
 > &tog_ls { layout-maps = <&layout_shift_map_us_to_jis>; };
+> &tog_ls_on { layout-maps = <&layout_shift_map_us_to_jis>; };
+> &tog_ls_off { layout-maps = <&layout_shift_map_us_to_jis>; };
 >
 > / {
 >     keymap {

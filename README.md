@@ -107,6 +107,8 @@ Use `&tog_ls`, `&tog_ls_on`, `&tog_ls_off` in your keymap to control layout shif
 #include <layout_shift_kp_override.dtsi>
 
 &tog_ls { layout-maps = <&layout_shift_map_us_to_jis>; };
+&tog_ls_on { layout-maps = <&layout_shift_map_us_to_jis>; };
+&tog_ls_off { layout-maps = <&layout_shift_map_us_to_jis>; };
 
 / {
     keymap {
@@ -116,6 +118,8 @@ Use `&tog_ls`, `&tog_ls_on`, `&tog_ls_off` in your keymap to control layout shif
             bindings = <
                 &kp EQUAL    // Will output = normally, but _ (which is = on JIS layout OS) when the US -> JIS layout shift is active
                 &tog_ls      // Toggle US -> JIS keycode conversion on/off
+                &tog_ls_on   // Turn on US -> JIS layout shift
+                &tog_ls_off  // Turn off US -> JIS layout shift
             >;
         };
     };
@@ -140,8 +144,8 @@ Use `&tog_ls`, `&tog_ls_on`, `&tog_ls_off` in your keymap to control layout shif
 >             bindings = <
 >                 &kpls EQUAL  // Will output = normally, but _ (which is = on JIS layout) when JIS layout is active
 >                 &tog_ls      // Toggle US -> JIS layout shift on/off
-                  &tog_ls_on   // Turn on US -> JIS layout shift
-                  &tog_ls_off  // Turn off US -> JIS layout shift
+>                 &tog_ls_on   // Turn on US -> JIS layout shift
+>                 &tog_ls_off  // Turn off US -> JIS layout shift
 >             >;
 >         };
 >     };
