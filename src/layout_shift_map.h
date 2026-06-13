@@ -69,7 +69,7 @@ void layout_shift_map_toggle(const struct device *dev);
 extern const struct device *layout_shift_map_devs[];
 extern const size_t layout_shift_map_dev_count;
 #else
-#define layout_shift_map_devs NULL
+#define layout_shift_map_devs ((const struct device **)NULL)
 #define layout_shift_map_dev_count 0
 #endif
 

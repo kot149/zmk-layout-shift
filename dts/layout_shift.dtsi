@@ -19,6 +19,31 @@
             display-name = "Key Press with Layout Shift";
         };
 
+        // Layout shift toggle behaviors
+        /omit-if-no-ref/ tog_ls: toggle_layout_shift {
+            compatible = "zmk,behavior-layout-shift-toggle";
+            #binding-cells = <0>;
+            toggle-mode = "flip";
+            label = "LAYOUT_SHIFT_TOGGLE";
+            display-name = "Toggle Layout Shift";
+        };
+
+        /omit-if-no-ref/ tog_ls_on: toggle_layout_shift_on {
+            compatible = "zmk,behavior-layout-shift-toggle";
+            #binding-cells = <0>;
+            toggle-mode = "on";
+            label = "LAYOUT_SHIFT_TOGGLE_ON";
+            display-name = "Toggle Layout Shift On";
+        };
+
+        /omit-if-no-ref/ tog_ls_off: toggle_layout_shift_off {
+            compatible = "zmk,behavior-layout-shift-toggle";
+            #binding-cells = <0>;
+            toggle-mode = "off";
+            label = "LAYOUT_SHIFT_TOGGLE_OFF";
+            display-name = "Toggle Layout Shift Off";
+        };
+
         // Layout-aware mod-tap behavior alias
         mtls: layout_shift_mod_tap {
             compatible = "zmk,behavior-hold-tap";
@@ -29,29 +54,6 @@
             display-name = "Mod-Tap with Layout Shift";
         };
 
-        // Layout shift toggle behaviors
-        tog_ls: toggle_layout_shift {
-            compatible = "zmk,behavior-layout-shift-toggle";
-            #binding-cells = <0>;
-            toggle-mode = "flip";
-            label = "LAYOUT_SHIFT_TOGGLE";
-            display-name = "Toggle Layout Shift";
-        };
 
-        tog_ls_on: toggle_layout_shift_on {
-            compatible = "zmk,behavior-layout-shift-toggle";
-            #binding-cells = <0>;
-            toggle-mode = "on";
-            label = "LAYOUT_SHIFT_TOGGLE_ON";
-            display-name = "Toggle Layout Shift On";
-        };
-
-        tog_ls_off: toggle_layout_shift_off {
-            compatible = "zmk,behavior-layout-shift-toggle";
-            #binding-cells = <0>;
-            toggle-mode = "off";
-            label = "LAYOUT_SHIFT_TOGGLE_OFF";
-            display-name = "Toggle Layout Shift Off";
-        };
     };
 };

@@ -23,10 +23,12 @@ static void sort_entries(struct layout_shift_map_entry *entries, size_t count) {
     }
 }
 
+#if DT_HAS_COMPAT_STATUS_OKAY(zmk_layout_shift_map)
 const struct device *layout_shift_map_devs[] = {
     DT_FOREACH_STATUS_OKAY(zmk_layout_shift_map, _LAYOUT_SHIFT_MAP_DEV_REF)
 };
 const size_t layout_shift_map_dev_count = ARRAY_SIZE(layout_shift_map_devs);
+#endif
 
 static void sort_devs_by_priority(void) {
     for (size_t i = 1; i < layout_shift_map_dev_count; i++) {
