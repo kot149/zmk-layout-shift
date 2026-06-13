@@ -12,7 +12,7 @@ Multiple layouts can be enabled simultaneously, each with independent on/off sta
 
 This module defines the following behaviors:
 
-- `&kpls`: A layout-aware version of `&kp`; maps keycodes according to active layout shift maps. For example, `&kpls EQUAL` normally outputs `=`, but outputs `_` (which is `=` in JIS layout) when JIS layout is enabled.
+- `&kpls`: A layout-aware version of `&kp`; maps keycodes according to active layout shift maps. For example, `&kpls EQUAL` normally outputs `=`, but outputs `_` (which is `=` in JIS layout) when US -> JIS layout is enabled.
 - `&tog_ls`: Toggles layout shift maps on/off
 - `&tog_ls_on`: Turns on layout shift maps
 - `&tog_ls_off`: Turns off layout shift maps
@@ -78,13 +78,13 @@ You can control multiple layouts with a single toggle by specifying multiple pha
 &tog_ls_off { layout-maps = <&layout_shift_map_us_to_jis &layout_shift_map_swap_ctrl_cmd>; };
 ```
 
-> **Note:** When multiple layout maps are active simultaneously, maps are applied sequentially. By default, they are applied in devicetree declaration order (`layouts.dtsi`). The output of one map becomes the input to the next, so if map 1 maps `A -> B` and map 2 maps `B -> C`, the final output is `C`.
+> **Note:** When multiple layout maps are active simultaneously, maps are applied sequentially. By default, they are applied in devicetree declaration order ([`layouts.dtsi`](dts/layouts.dtsi)). The output of one map becomes the input to the next, so if map 1 maps `A -> B` and map 2 maps `B -> C`, the final output is `C`.
 >
-> To control the application order explicitly, set the `priority` property on each layout map node — smaller values are applied first. Ties fall back to devicetree declaration order.
+> To control the application order explicitly, set the `priority` property on each layout map node — smaller values are applied first.
 >
 > ```dts
-> &layout_shift_map_us_to_jis            { priority = <10>; };
-> &layout_shift_map_swap_ctrl_cmd  { priority = <20>; };  // applied after JIS
+> &layout_shift_map_us_to_jis { priority = <1>; };
+> &layout_shift_map_swap_ctrl_cmd { priority = <2>; }; // applied after JIS
 > ```
 
 ### 3. Include `layout_shift_kp_override.dtsi` to Override `&kp` Behavior
@@ -129,6 +129,8 @@ Use `&tog_ls`, `&tog_ls_on`, `&tog_ls_off` in your keymap to control layout shif
 > #include <layout_shift.dtsi>
 >
 > &tog_ls { layout-maps = <&layout_shift_map_us_to_jis>; };
+> &tog_ls_on { layout-maps = <&layout_shift_map_us_to_jis>; };
+> &tog_ls_off { layout-maps = <&layout_shift_map_us_to_jis>; };
 >
 > / {
 >     keymap {
@@ -136,8 +138,10 @@ Use `&tog_ls`, `&tog_ls_on`, `&tog_ls_off` in your keymap to control layout shif
 >
 >         default_layer {
 >             bindings = <
->                 &kpls EQUAL    // Will output = normally, but _ (which is = on JIS layout) when JIS layout is active
->                 &tog_ls         // Toggle JIS layout shift on/off
+>                 &kpls EQUAL  // Will output = normally, but _ (which is = on JIS layout) when JIS layout is active
+>                 &tog_ls      // Toggle US -> JIS layout shift on/off
+                  &tog_ls_on   // Turn on US -> JIS layout shift
+                  &tog_ls_off  // Turn off US -> JIS layout shift
 >             >;
 >         };
 >     };

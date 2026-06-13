@@ -12,7 +12,7 @@
 
 このモジュールは以下のbehaviorを定義します。
 
-- `&kpls`: 現在のレイアウトシフト状態に応じてキーコードをマッピングする、レイアウト対応版の`&kp`。例えば、`&kpls EQUAL`は通常は`=`を出力するが、JISレイアウトが有効な場合は`_`(JISレイアウトでの`=`に対応)を出力する
+- `&kpls`: 現在のレイアウトシフト状態に応じてキーコードをマッピングする、レイアウト対応版の`&kp`。例えば、`&kpls EQUAL`は通常は`=`を出力するが、US -> JISレイアウトが有効な場合は`_`(JISレイアウトでの`=`に対応)を出力する
 - `&tog_ls`: レイアウトシフトマップのオンオフを切り替える
 - `&tog_ls_on`: レイアウトシフトマップをオンにする
 - `&tog_ls_off`: レイアウトシフトマップをオフにする
@@ -78,13 +78,13 @@ manifest:
 &tog_ls_off { layout-maps = <&layout_shift_map_us_to_jis &layout_shift_map_swap_ctrl_cmd>; };
 ```
 
-> **Note:** 複数のレイアウトマップが同時に有効な場合、マップは逐次適用されます。デフォルトではdevicetreeの宣言順（`layouts.dtsi`）に適用され、あるマップの出力が次のマップの入力になります。マップ1が`A -> B`、マップ2が`B -> C`にマッピングする場合、最終出力は`C`になります。
+> **Note:** 複数のレイアウトマップが同時に有効な場合、マップは逐次適用されます。デフォルトではdevicetreeの宣言順（[`layouts.dtsi`](dts/layouts.dtsi)）に適用され、あるマップの出力が次のマップの入力になります。マップ1が`A -> B`、マップ2が`B -> C`にマッピングする場合、最終出力は`C`になります。
 >
-> 適用順を明示的に制御したい場合は、各レイアウトマップノードに`priority`プロパティを設定してください。値が小さいものから先に適用されます。同値の場合はdevicetree宣言順にフォールバックします。
+> 適用順を明示的に制御したい場合は、各レイアウトマップノードに`priority`プロパティを設定してください。値が小さいものから先に適用されます。
 >
 > ```dts
-> &layout_shift_map_us_to_jis            { priority = <10>; };
-> &layout_shift_map_swap_ctrl_cmd  { priority = <20>; };  // JISの後に適用
+> &layout_shift_map_us_to_jis { priority = <1>; };
+> &layout_shift_map_swap_ctrl_cmd { priority = <2>; }; // JISの後に適用
 > ```
 
 ### 3. `layout_shift_kp_override.dtsi`をincludeして、`&kp` behaviorをオーバーライドする
@@ -114,8 +114,7 @@ manifest:
 
         default_layer {
             bindings = <
-                &kp EQUAL      // 通常は=を出力するが
-                               // US -> JISレイアウトシフトが有効なときは
+                &kp EQUAL      // 通常は=を出力するが、US -> JISレイアウトシフトが有効なときは
                                // _(JISレイアウトでの=に対応)を出力する
                 &tog_ls        // US ->JISレイアウトシフトのオン/オフを切り替え
             >;
@@ -138,8 +137,10 @@ manifest:
 >
 >         default_layer {
 >             bindings = <
->                 &kpls EQUAL    // 通常は=を出力するが、US -> JISレイアウトシフトが有効なときは_(JISレイアウトでの=に対応)を出力する
->                 &tog_ls         // US -> JISレイアウトシフトのオン/オフを切り替え
+>                 &kpls EQUAL  // 通常は=を出力するが、US -> JISレイアウトシフトが有効なときは_(JISレイアウトでの=に対応)を出力する
+>                 &tog_ls      // US -> JISレイアウトシフトのオン/オフを切り替え
+>                 &tog_ls_on   // US -> JISレイアウトシフトをオンにする
+>                 &tog_ls_off  // US -> JISレイアウトシフトをオフにする
 >             >;
 >         };
 >     };
