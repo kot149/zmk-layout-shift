@@ -3,8 +3,8 @@
 #include <dt-bindings/zmk/kscan_mock.h>
 #include <layout_shift.dtsi>
 
-&tog_ls_on { layout-maps = <&layout_shift_map_jis>; };
-&tog_ls_off { layout-maps = <&layout_shift_map_jis>; };
+&tog_ls_on { layout-maps = <&layout_shift_map_us_to_jis>; };
+&tog_ls_off { layout-maps = <&layout_shift_map_us_to_jis>; };
 
 &kscan {
     events = <

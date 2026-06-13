@@ -9,7 +9,7 @@
             compatible = "zmk,behavior-layout-shift-toggle";
             #binding-cells = <0>;
             toggle-mode = "flip";
-            layout-maps = <&layout_shift_map_jis>;
+            layout-maps = <&layout_shift_map_us_to_jis>;
         };
         tog_dvk: toggle_dvorak {
             compatible = "zmk,behavior-layout-shift-toggle";

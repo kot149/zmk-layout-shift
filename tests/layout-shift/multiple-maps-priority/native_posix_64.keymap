@@ -3,12 +3,12 @@
 #include <dt-bindings/zmk/kscan_mock.h>
 #include <layout_shift.dtsi>
 
-&tog_ls { layout-maps = <&layout_shift_map_jis &layout_shift_map_dvorak>; };
+&tog_ls { layout-maps = <&layout_shift_map_us_to_jis &layout_shift_map_dvorak>; };
 
 /* Invert default declaration order: dvorak first, jis second.
  * EQUAL: dvorak EQUAL->RIGHT_BRACKET, jis RIGHT_BRACKET->BACKSLASH. */
 &layout_shift_map_dvorak { priority = <10>; };
-&layout_shift_map_jis    { priority = <20>; };
+&layout_shift_map_us_to_jis    { priority = <20>; };
 
 &kscan {
     events = <

@@ -21,7 +21,7 @@
 
 ## 利用可能なレイアウト一覧
 
-- **JIS**: JISレイアウト
+- **US -> JIS**: US配列前提のキーコードをJIS配列設定のOS向けに変換
 - **Dvorak**: Dvorakレイアウト
 - **Swap Ctrl and Cmd**: Windows/Mac間のCtrl/Cmd入れ替え
 
@@ -55,16 +55,16 @@ manifest:
 トグルbehaviorが制御するレイアウトマップを設定します。レイアウトマップは参照されると自動的に有効化されます。`layout-maps`を省略すると、利用可能なすべてのレイアウトマップを一括制御します:
 
 ```dts
-&tog_ls { layout-maps = <&layout_shift_map_jis>; };
-&tog_ls_on { layout-maps = <&layout_shift_map_jis>; };
-&tog_ls_off { layout-maps = <&layout_shift_map_jis>; };
+&tog_ls { layout-maps = <&layout_shift_map_us_to_jis>; };
+&tog_ls_on { layout-maps = <&layout_shift_map_us_to_jis>; };
+&tog_ls_off { layout-maps = <&layout_shift_map_us_to_jis>; };
 ```
 
 利用可能なレイアウトマップノード:
 
 | ノードラベル | レイアウト |
 |---|---|
-| `layout_shift_map_jis` | JIS |
+| `layout_shift_map_us_to_jis` | US -> JIS |
 | `layout_shift_map_dvorak` | Dvorak |
 | `layout_shift_map_swap_ctrl_cmd` | Ctrl/Cmd入れ替え |
 
@@ -73,17 +73,17 @@ manifest:
 1つのトグルで複数のレイアウトを制御するには、複数のphandleを指定します:
 
 ```dts
-&tog_ls { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
-&tog_ls_on { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
-&tog_ls_off { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
+&tog_ls { layout-maps = <&layout_shift_map_us_to_jis &layout_shift_map_swap_ctrl_cmd>; };
+&tog_ls_on { layout-maps = <&layout_shift_map_us_to_jis &layout_shift_map_swap_ctrl_cmd>; };
+&tog_ls_off { layout-maps = <&layout_shift_map_us_to_jis &layout_shift_map_swap_ctrl_cmd>; };
 ```
 
-> **Note:** 複数のレイアウトマップが同時に有効な場合、マップは逐次適用されます。デフォルトではdevicetreeの宣言順（`layouts.dtsi`）に適用され、あるマップの出力が次のマップの入力になります。マップ1が`A → B`、マップ2が`B → C`にマッピングする場合、最終出力は`C`になります。
+> **Note:** 複数のレイアウトマップが同時に有効な場合、マップは逐次適用されます。デフォルトではdevicetreeの宣言順（`layouts.dtsi`）に適用され、あるマップの出力が次のマップの入力になります。マップ1が`A -> B`、マップ2が`B -> C`にマッピングする場合、最終出力は`C`になります。
 >
 > 適用順を明示的に制御したい場合は、各レイアウトマップノードに`priority`プロパティを設定してください。値が小さいものから先に適用されます。同値の場合はdevicetree宣言順にフォールバックします。
 >
 > ```dts
-> &layout_shift_map_jis            { priority = <10>; };
+> &layout_shift_map_us_to_jis            { priority = <10>; };
 > &layout_shift_map_swap_ctrl_cmd  { priority = <20>; };  // JISの後に適用
 > ```
 
@@ -106,7 +106,7 @@ manifest:
 ```dts
 #include <layout_shift_kp_override.dtsi>
 
-&tog_ls { layout-maps = <&layout_shift_map_jis>; };
+&tog_ls { layout-maps = <&layout_shift_map_us_to_jis>; };
 
 / {
     keymap {
@@ -114,8 +114,10 @@ manifest:
 
         default_layer {
             bindings = <
-                &kp EQUAL      // 通常は=を出力するが、JISレイアウトでは_(JISレイアウトでの=に対応)を出力する
-                &tog_ls         // JISレイアウトシフトのオン/オフを切り替え
+                &kp EQUAL      // 通常は=を出力するが
+                               // US -> JISレイアウトシフトが有効なときは
+                               // _(JISレイアウトでの=に対応)を出力する
+                &tog_ls        // US ->JISレイアウトシフトのオン/オフを切り替え
             >;
         };
     };
@@ -128,7 +130,7 @@ manifest:
 > ```dts
 > #include <layout_shift.dtsi>
 >
-> &tog_ls { layout-maps = <&layout_shift_map_jis>; };
+> &tog_ls { layout-maps = <&layout_shift_map_us_to_jis>; };
 >
 > / {
 >     keymap {
@@ -136,8 +138,8 @@ manifest:
 >
 >         default_layer {
 >             bindings = <
->                 &kpls EQUAL    // 通常は=を出力するが、JISレイアウトでは_(JISレイアウトでの=に対応)を出力する
->                 &tog_ls         // JISレイアウトシフトのオン/オフを切り替え
+>                 &kpls EQUAL    // 通常は=を出力するが、US -> JISレイアウトシフトが有効なときは_(JISレイアウトでの=に対応)を出力する
+>                 &tog_ls         // US -> JISレイアウトシフトのオン/オフを切り替え
 >             >;
 >         };
 >     };
@@ -157,7 +159,7 @@ manifest:
             compatible = "zmk,behavior-layout-shift-toggle";
             #binding-cells = <0>;
             toggle-mode = "flip";
-            layout-maps = <&layout_shift_map_jis>;
+            layout-maps = <&layout_shift_map_us_to_jis>;
         };
 
         tog_ls_swap: toggle_layout_shift_swap {
@@ -173,8 +175,8 @@ manifest:
 
         default_layer {
             bindings = <
-                &tog_ls_jis     // JISレイアウトを切り替え
-                &tog_ls_swap    // Ctrl/Cmd入れ替えレイアウトを切り替え
+                &tog_ls_us_to_jis  // US -> JISレイアウトシフトの切り替え
+                &tog_ls_swap       // Ctrl/Cmd入れ替えレイアウトを切り替え
             >;
         };
     };

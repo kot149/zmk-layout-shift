@@ -2,7 +2,7 @@
 #include <dt-bindings/zmk/layout_shift.h>
 
 / {
-    /omit-if-no-ref/ layout_shift_map_jis: layout_shift_map_jis {
+    /omit-if-no-ref/ layout_shift_map_us_to_jis: layout_shift_map_us_to_jis {
         compatible = "zmk,layout-shift-map";
         mappings = <
             EQUAL             UNDERSCORE        (OPTIONAL_CTRL | OPTIONAL_ALT | OPTIONAL_GUI)

@@ -21,7 +21,7 @@ These toggle behaviors require the `layout-maps` property to specify which layou
 
 ## List of Pre-Defined Layouts
 
-- **JIS**: Japanese keyboard layout
+- **US -> JIS**: Converts US keyboard keycodes for use on an OS configured with the JIS layout
 - **Dvorak**: Dvorak keyboard layout
 - **Swap Ctrl and Cmd**: Swap Ctrl / Cmd for Windows / Mac
 
@@ -55,16 +55,16 @@ manifest:
 Configure the toggle behaviors to point to the desired layout map(s). Layout maps are automatically enabled when referenced. If `layout-maps` is omitted, the toggle controls all available layout maps at once:
 
 ```dts
-&tog_ls { layout-maps = <&layout_shift_map_jis>; };
-&tog_ls_on { layout-maps = <&layout_shift_map_jis>; };
-&tog_ls_off { layout-maps = <&layout_shift_map_jis>; };
+&tog_ls { layout-maps = <&layout_shift_map_us_to_jis>; };
+&tog_ls_on { layout-maps = <&layout_shift_map_us_to_jis>; };
+&tog_ls_off { layout-maps = <&layout_shift_map_us_to_jis>; };
 ```
 
 Available layout map nodes:
 
 | Node Label | Layout |
 |---|---|
-| `layout_shift_map_jis` | Japanese (JIS) |
+| `layout_shift_map_us_to_jis` | US -> JIS |
 | `layout_shift_map_dvorak` | Dvorak |
 | `layout_shift_map_swap_ctrl_cmd` | Swap Ctrl / Cmd |
 
@@ -73,17 +73,17 @@ You can also define your own custom layout maps. See [Adding New Layouts](#addin
 You can control multiple layouts with a single toggle by specifying multiple phandles:
 
 ```dts
-&tog_ls { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
-&tog_ls_on { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
-&tog_ls_off { layout-maps = <&layout_shift_map_jis &layout_shift_map_swap_ctrl_cmd>; };
+&tog_ls { layout-maps = <&layout_shift_map_us_to_jis &layout_shift_map_swap_ctrl_cmd>; };
+&tog_ls_on { layout-maps = <&layout_shift_map_us_to_jis &layout_shift_map_swap_ctrl_cmd>; };
+&tog_ls_off { layout-maps = <&layout_shift_map_us_to_jis &layout_shift_map_swap_ctrl_cmd>; };
 ```
 
-> **Note:** When multiple layout maps are active simultaneously, maps are applied sequentially. By default, they are applied in devicetree declaration order (`layouts.dtsi`). The output of one map becomes the input to the next, so if map 1 maps `A → B` and map 2 maps `B → C`, the final output is `C`.
+> **Note:** When multiple layout maps are active simultaneously, maps are applied sequentially. By default, they are applied in devicetree declaration order (`layouts.dtsi`). The output of one map becomes the input to the next, so if map 1 maps `A -> B` and map 2 maps `B -> C`, the final output is `C`.
 >
 > To control the application order explicitly, set the `priority` property on each layout map node — smaller values are applied first. Ties fall back to devicetree declaration order.
 >
 > ```dts
-> &layout_shift_map_jis            { priority = <10>; };
+> &layout_shift_map_us_to_jis            { priority = <10>; };
 > &layout_shift_map_swap_ctrl_cmd  { priority = <20>; };  // applied after JIS
 > ```
 
@@ -106,7 +106,7 @@ Use `&tog_ls`, `&tog_ls_on`, `&tog_ls_off` in your keymap to control layout shif
 ```dts
 #include <layout_shift_kp_override.dtsi>
 
-&tog_ls { layout-maps = <&layout_shift_map_jis>; };
+&tog_ls { layout-maps = <&layout_shift_map_us_to_jis>; };
 
 / {
     keymap {
@@ -114,8 +114,8 @@ Use `&tog_ls`, `&tog_ls_on`, `&tog_ls_off` in your keymap to control layout shif
 
         default_layer {
             bindings = <
-                &kp EQUAL      // Will output = normally, but _ (which is = on JIS layout) when JIS layout is active
-                &tog_ls         // Toggle JIS layout shift on/off
+                &kp EQUAL    // Will output = normally, but _ (which is = on JIS layout OS) when the US -> JIS layout shift is active
+                &tog_ls      // Toggle US -> JIS keycode conversion on/off
             >;
         };
     };
@@ -128,7 +128,7 @@ Use `&tog_ls`, `&tog_ls_on`, `&tog_ls_off` in your keymap to control layout shif
 > ```dts
 > #include <layout_shift.dtsi>
 >
-> &tog_ls { layout-maps = <&layout_shift_map_jis>; };
+> &tog_ls { layout-maps = <&layout_shift_map_us_to_jis>; };
 >
 > / {
 >     keymap {
@@ -153,11 +153,11 @@ If you need separate toggle keys for different layouts (e.g., one key for JIS, a
 
 / {
     behaviors {
-        tog_ls_jis: toggle_layout_shift_jis {
+        tog_ls_us_to_jis: toggle_layout_shift_us_to_jis {
             compatible = "zmk,behavior-layout-shift-toggle";
             #binding-cells = <0>;
             toggle-mode = "flip";
-            layout-maps = <&layout_shift_map_jis>;
+            layout-maps = <&layout_shift_map_us_to_jis>;
         };
 
         tog_ls_swap: toggle_layout_shift_swap {
@@ -173,8 +173,8 @@ If you need separate toggle keys for different layouts (e.g., one key for JIS, a
 
         default_layer {
             bindings = <
-                &tog_ls_jis     // Toggle JIS layout
-                &tog_ls_swap    // Toggle Swap Ctrl/Cmd layout
+                &tog_ls_us_to_jis  // Toggle US -> JIS conversion
+                &tog_ls_swap       // Toggle Swap Ctrl/Cmd layout
             >;
         };
     };
