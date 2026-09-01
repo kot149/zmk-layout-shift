@@ -24,7 +24,6 @@ struct layout_shift_map_config {
 struct layout_shift_map_data {
     zmk_mod_flags_t modifier_map[8];
     bool active;
-    size_t declaration_index;
 #if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
     bool dirty;
 #endif
@@ -56,6 +55,7 @@ static inline int layout_shift_map_find_base(const struct device *dev, uint32_t 
     const struct layout_shift_map_config *cfg = dev->config;
     int lo = 0, hi = (int)cfg->entry_count - 1;
     int result = -1;
+
     while (lo <= hi) {
         int mid = lo + (hi - lo) / 2;
         uint32_t mid_base = STRIP_MODS(layout_shift_map_entry(dev, mid).from_keycode);

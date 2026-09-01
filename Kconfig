@@ -16,6 +16,12 @@ config LAYOUT_SHIFT_MAX_PRESSED_KEYS
       Maximum number of simultaneous layout shift key presses to track.
       Lower values reduce RAM usage.
 
+config LAYOUT_SHIFT_DEBUG
+    bool "Layout Shift debug logging"
+    depends on LOG
+    help
+      Enable detailed per-key layout shift debug logging.
+
 config LAYOUT_SHIFT_PERSISTENT_STATE
     bool "Layout Shift Persistent State"
     default y
