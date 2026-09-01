@@ -25,27 +25,29 @@ struct behavior_layout_shift_toggle_config {
 
 struct behavior_layout_shift_toggle_data {};
 
-static void apply_toggle(const struct device *map_dev, enum toggle_mode mode) {
+static bool apply_toggle(const struct device *map_dev, enum toggle_mode mode) {
     switch (mode) {
         case TOGGLE_MODE_ON:
-            layout_shift_map_set_active(map_dev, true);
-            break;
+            return layout_shift_map_update(map_dev, true);
         case TOGGLE_MODE_OFF:
-            layout_shift_map_set_active(map_dev, false);
-            break;
+            return layout_shift_map_update(map_dev, false);
         case TOGGLE_MODE_FLIP:
-            layout_shift_map_toggle(map_dev);
-            break;
+            return layout_shift_map_update(map_dev, !layout_shift_map_is_active(map_dev));
     }
+    return false;
 }
 
 static int on_layout_shift_toggle_binding_pressed(struct zmk_behavior_binding *binding,
                                                  struct zmk_behavior_binding_event event) {
     const struct device *dev = zmk_behavior_get_binding(binding->behavior_dev);
     const struct behavior_layout_shift_toggle_config *config = dev->config;
+    bool changed = false;
 
     for (size_t i = 0; i < config->layout_map_count; i++) {
-        apply_toggle(config->layout_maps[i], config->toggle_mode);
+        changed |= apply_toggle(config->layout_maps[i], config->toggle_mode);
+    }
+    if (changed) {
+        layout_shift_map_schedule_save();
     }
 
     return ZMK_BEHAVIOR_OPAQUE;
