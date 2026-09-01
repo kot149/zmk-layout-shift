@@ -71,18 +71,11 @@ static struct k_work_delayable layout_shift_save_work;
 static void layout_shift_save_work_handler(struct k_work *work);
 #endif
 
-/* Runs after all device init (POST_KERNEL) completes, so declaration_index
- * is populated before any consumer iterates layout_shift_map_devs[]. */
 static int layout_shift_map_post_init(void) {
     sort_devs_by_priority();
 #if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
     k_work_init_delayable(&layout_shift_save_work, layout_shift_save_work_handler);
 #endif
-    for (size_t i = 0; i < layout_shift_map_dev_count; i++) {
-        const struct layout_shift_map_config *cfg = layout_shift_map_devs[i]->config;
-        LOG_DBG("Layout shift map order [%zu]: %s (priority=%d)",
-                i, layout_shift_map_devs[i]->name, cfg->priority);
-    }
     return 0;
 }
 
@@ -107,7 +100,6 @@ void layout_shift_map_schedule_save(void) {
 
 void layout_shift_map_set_active(const struct device *dev, bool active) {
     if (layout_shift_map_update(dev, active)) {
-        LOG_INF("Layout shift map %s %s", dev->name, active ? "activated" : "deactivated");
         layout_shift_map_schedule_save();
     }
 }
@@ -153,7 +145,6 @@ static void layout_shift_save_work_handler(struct k_work *work) {
                     rc);
         }
     }
-    LOG_DBG("Saved layout shift states");
 }
 
 static int layout_shift_settings_load_cb(const char *name, size_t len,
@@ -170,9 +161,6 @@ static int layout_shift_settings_load_cb(const char *name, size_t len,
             }
             struct layout_shift_map_data *data = layout_shift_map_devs[i]->data;
             int rc = read_cb(cb_arg, &data->active, sizeof(bool));
-            if (rc >= 0) {
-                LOG_INF("Loaded layout shift state %s: %d", layout_shift_map_devs[i]->name, data->active);
-            }
             return rc < 0 ? rc : rc == sizeof(bool) ? 0 : -EINVAL;
         }
     }
@@ -188,8 +176,6 @@ static int layout_shift_map_init(const struct device *dev) {
     struct layout_shift_map_data *data = dev->data;
     const struct layout_shift_map_config *config = dev->config;
 
-    data->active = false;
-
     sort_indices(config);
     for (size_t i = 0; i < config->entry_count; i++) {
         struct layout_shift_map_entry entry = layout_shift_map_entry(dev, i);
@@ -200,7 +186,6 @@ static int layout_shift_map_init(const struct device *dev) {
         }
     }
 
-    LOG_INF("Layout shift map %s initialized (%zu entries)", dev->name, config->entry_count);
     return 0;
 }
 
@@ -213,9 +198,7 @@ static int layout_shift_map_init(const struct device *dev) {
     BUILD_ASSERT(ARRAY_SIZE(layout_map_raw_##n) / 3 <= UINT16_MAX,                                \
                  "layout shift map supports at most UINT16_MAX entries");                        \
     static uint16_t sorted_indices_##n[ARRAY_SIZE(layout_map_raw_##n) / 3];                        \
-    static struct layout_shift_map_data layout_shift_map_data_##n = {                              \
-        .declaration_index = n,                                                                    \
-    };                                                                                            \
+    static struct layout_shift_map_data layout_shift_map_data_##n;                                \
     static const struct layout_shift_map_config layout_shift_map_config_##n = {                   \
         .mappings_raw = layout_map_raw_##n,                                                       \
         .sorted_indices = sorted_indices_##n,                                                     \

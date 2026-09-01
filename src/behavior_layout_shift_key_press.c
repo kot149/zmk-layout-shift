@@ -3,7 +3,6 @@
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include <string.h>
 #include <drivers/behavior.h>
 #include <zmk/behavior.h>
 #include <zmk/event_manager.h>
@@ -17,6 +16,12 @@
 #include "layout_shift_map.h"
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
+
+#if IS_ENABLED(CONFIG_LAYOUT_SHIFT_DEBUG)
+#define LAYOUT_SHIFT_LOG_DBG(...) LOG_DBG(__VA_ARGS__)
+#else
+#define LAYOUT_SHIFT_LOG_DBG(...)
+#endif
 
 static zmk_mod_flags_t translate_embedded_mods(zmk_mod_flags_t mods, bool *changed) {
     zmk_mod_flags_t result = mods;
@@ -36,16 +41,10 @@ struct lookup_result {
     bool matched;
 };
 
-// Lookup mapped keycode by applying active layout maps sequentially (chained).
-// The output of one map becomes the input to the next, so map1: A->B, map2: B->C
-// produces A->C.
 static struct lookup_result lookup_mapped_keycode(uint32_t input_keycode) {
     struct lookup_result result = {
         .keycode = input_keycode,
-        .matched_opt_mods = 0,
-        .matched = false,
     };
-
     zmk_mod_flags_t current_mods = 0;
     uint32_t current_keycode = input_keycode;
     bool active_map_found = false;
@@ -87,15 +86,15 @@ static struct lookup_result lookup_mapped_keycode(uint32_t input_keycode) {
             zmk_mod_flags_t target_mods = SELECT_MODS(entry.to_keycode);
             zmk_mod_flags_t final_mods = target_mods | (total_input_mods & entry.optional_mods);
 
-            current_keycode = (final_mods != 0) ? APPLY_MODS(final_mods, target_base) : target_base;
-            // OR-accumulate: each map independently declares optional modifiers for its
-            // stage; all remain optional across the whole chain.
+            current_keycode = final_mods != 0 ? APPLY_MODS(final_mods, target_base) : target_base;
             result.matched_opt_mods |= entry.optional_mods;
             result.matched = true;
 
-            LOG_DBG("LAYOUT_SHIFT: Mapping %08X -> %08X (dev=%s, input_mods: %02X, target_mods: %02X, final: %02X)",
-                    input_keycode, current_keycode, map_dev->name,
-                    total_input_mods, target_mods, final_mods);
+            LAYOUT_SHIFT_LOG_DBG(
+                "LAYOUT_SHIFT: Mapping %08X -> %08X (dev=%s, input_mods: %02X, "
+                "target_mods: %02X, final: %02X)",
+                input_keycode, current_keycode, map_dev->name, total_input_mods, target_mods,
+                final_mods);
             break;
         }
     }
@@ -108,23 +107,20 @@ static struct lookup_result lookup_mapped_keycode(uint32_t input_keycode) {
         return result;
     }
 
-    // No base-keycode mapping found. Try translating modifiers embedded in the keycode
-    // (e.g. LCTL(C) -> LGUI(C) when swapping Ctrl/Cmd) using modifier-to-modifier entries.
-    // result.matched intentionally stays false: embedded-mod translation only remaps
-    // modifier bits inside the keycode, so physical modifier masking is not needed.
     zmk_mod_flags_t keycode_mods = SELECT_MODS(input_keycode);
     if (keycode_mods != 0) {
         bool changed = false;
         zmk_mod_flags_t new_keycode_mods = translate_embedded_mods(keycode_mods, &changed);
         if (changed) {
             result.keycode = APPLY_MODS(new_keycode_mods, STRIP_MODS(input_keycode));
-            LOG_DBG("LAYOUT_SHIFT: Mapping embedded mods %08X -> %08X (mods: %02X -> %02X)",
-                    input_keycode, result.keycode, keycode_mods, new_keycode_mods);
+            LAYOUT_SHIFT_LOG_DBG(
+                "LAYOUT_SHIFT: Mapping embedded mods %08X -> %08X (mods: %02X -> %02X)",
+                input_keycode, result.keycode, keycode_mods, new_keycode_mods);
             return result;
         }
     }
 
-    LOG_DBG("LAYOUT_SHIFT: No mapping found for %08X", input_keycode);
+    LAYOUT_SHIFT_LOG_DBG("LAYOUT_SHIFT: No mapping found for %08X", input_keycode);
     return result;
 }
 
@@ -162,7 +158,7 @@ static void update_modifier_mask(struct behavior_layout_shift_key_press_data *da
         zmk_hid_masked_modifiers_set(masked_mods);
     }
     data->currently_masked_mods = masked_mods;
-    LOG_DBG("LAYOUT_SHIFT: Modifier mask set to %02X", masked_mods);
+    LAYOUT_SHIFT_LOG_DBG("LAYOUT_SHIFT: Modifier mask set to %02X", masked_mods);
 }
 
 static int store_key_mapping(struct behavior_layout_shift_key_press_data *data, uint32_t position,
@@ -213,8 +209,8 @@ static int on_layout_shift_key_press_binding_pressed(struct zmk_behavior_binding
         masked_mods = unwanted_modifiers(result.matched_opt_mods, result.keycode, total_mods);
     }
 
-    LOG_DBG("LAYOUT_SHIFT: Input keycode 0x%08X -> Mapped keycode 0x%08X",
-            original_keycode, result.keycode);
+    LAYOUT_SHIFT_LOG_DBG("LAYOUT_SHIFT: Input keycode 0x%08X -> Mapped keycode 0x%08X",
+                         original_keycode, result.keycode);
 
     int ret = store_key_mapping(data, event.position, result.keycode, masked_mods);
     if (ret < 0) {
@@ -232,18 +228,18 @@ static int on_layout_shift_key_press_binding_released(struct zmk_behavior_bindin
     uint32_t mapped_keycode;
 
     if (take_key_mapping(data, event.position, &mapped_keycode)) {
-        LOG_DBG(
+        LAYOUT_SHIFT_LOG_DBG(
             "LAYOUT_SHIFT: Using stored mapping for release 0x%08X -> 0x%08X",
             original_keycode, mapped_keycode);
     } else {
         mapped_keycode = lookup_mapped_keycode(original_keycode).keycode;
-        LOG_DBG(
+        LAYOUT_SHIFT_LOG_DBG(
             "LAYOUT_SHIFT: No stored mapping found, recalculating 0x%08X -> 0x%08X",
             original_keycode, mapped_keycode);
     }
 
-    LOG_DBG("LAYOUT_SHIFT: Released input keycode 0x%08X -> Mapped keycode 0x%08X",
-            original_keycode, mapped_keycode);
+    LAYOUT_SHIFT_LOG_DBG("LAYOUT_SHIFT: Released input keycode 0x%08X -> Mapped keycode 0x%08X",
+                         original_keycode, mapped_keycode);
     return raise_zmk_keycode_state_changed_from_encoded(mapped_keycode, false, event.timestamp);
 }
 
@@ -277,21 +273,11 @@ static const struct behavior_driver_api behavior_layout_shift_key_press_driver_a
 #endif
 };
 
-static int layout_shift_key_press_init(const struct device *dev) {
-    struct behavior_layout_shift_key_press_data *data = dev->data;
-    memset(data, 0, sizeof(*data));
-
-    LOG_INF("Layout Shift Behavior Initialized");
-    return 0;
-}
-
-// Define behavior instance only if devicetree node exists
 #if DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT)
-static struct behavior_layout_shift_key_press_data behavior_layout_shift_key_press_data_0 = {};
-static const struct behavior_layout_shift_key_press_config behavior_layout_shift_key_press_config_0 = {};
+static struct behavior_layout_shift_key_press_data behavior_layout_shift_key_press_data_0;
 
-BEHAVIOR_DT_INST_DEFINE(0, layout_shift_key_press_init, NULL,
-                        &behavior_layout_shift_key_press_data_0, &behavior_layout_shift_key_press_config_0,
+BEHAVIOR_DT_INST_DEFINE(0, NULL, NULL,
+                        &behavior_layout_shift_key_press_data_0, NULL,
                         POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,
                         &behavior_layout_shift_key_press_driver_api);
 #endif
