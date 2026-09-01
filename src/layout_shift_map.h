@@ -25,6 +25,9 @@ struct layout_shift_map_data {
     zmk_mod_flags_t modifier_map[8];
     bool active;
     size_t declaration_index;
+#if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
+    bool dirty;
+#endif
 };
 
 static inline bool layout_shift_map_is_active(const struct device *dev) {
@@ -68,6 +71,8 @@ static inline int layout_shift_map_find_base(const struct device *dev, uint32_t 
     return result;
 }
 
+bool layout_shift_map_update(const struct device *dev, bool active);
+void layout_shift_map_schedule_save(void);
 void layout_shift_map_set_active(const struct device *dev, bool active);
 void layout_shift_map_toggle(const struct device *dev);
 zmk_mod_flags_t layout_shift_map_translate_mods(const struct device *dev, zmk_mod_flags_t mods,

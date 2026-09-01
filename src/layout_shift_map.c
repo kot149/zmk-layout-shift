@@ -66,10 +66,18 @@ static void sort_devs_by_priority(void) {
     }
 }
 
+#if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
+static struct k_work_delayable layout_shift_save_work;
+static void layout_shift_save_work_handler(struct k_work *work);
+#endif
+
 /* Runs after all device init (POST_KERNEL) completes, so declaration_index
  * is populated before any consumer iterates layout_shift_map_devs[]. */
 static int layout_shift_map_post_init(void) {
     sort_devs_by_priority();
+#if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
+    k_work_init_delayable(&layout_shift_save_work, layout_shift_save_work_handler);
+#endif
     for (size_t i = 0; i < layout_shift_map_dev_count; i++) {
         const struct layout_shift_map_config *cfg = layout_shift_map_devs[i]->config;
         LOG_DBG("Layout shift map order [%zu]: %s (priority=%d)",
@@ -78,21 +86,29 @@ static int layout_shift_map_post_init(void) {
     return 0;
 }
 
-SYS_INIT(layout_shift_map_post_init, APPLICATION, 0);
+bool layout_shift_map_update(const struct device *dev, bool active) {
+    struct layout_shift_map_data *data = dev->data;
+    if (data->active == active) {
+        return false;
+    }
 
+    data->active = active;
 #if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
-static struct k_work_delayable layout_shift_save_work;
+    data->dirty = true;
 #endif
+    return true;
+}
+
+void layout_shift_map_schedule_save(void) {
+#if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
+    k_work_reschedule(&layout_shift_save_work, K_MSEC(CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE));
+#endif
+}
 
 void layout_shift_map_set_active(const struct device *dev, bool active) {
-    struct layout_shift_map_data *data = dev->data;
-    if (data->active != active) {
-        data->active = active;
+    if (layout_shift_map_update(dev, active)) {
         LOG_INF("Layout shift map %s %s", dev->name, active ? "activated" : "deactivated");
-
-#if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
-        k_work_reschedule(&layout_shift_save_work, K_MSEC(CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE));
-#endif
+        layout_shift_map_schedule_save();
     }
 }
 
@@ -122,10 +138,20 @@ zmk_mod_flags_t layout_shift_map_translate_mods(const struct device *dev, zmk_mo
 
 static void layout_shift_save_work_handler(struct k_work *work) {
     for (size_t i = 0; i < layout_shift_map_dev_count; i++) {
+        struct layout_shift_map_data *data = layout_shift_map_devs[i]->data;
+        if (!data->dirty) {
+            continue;
+        }
+
         char key[64];
         snprintk(key, sizeof(key), "layout_shift/m/%s", layout_shift_map_devs[i]->name);
-        struct layout_shift_map_data *data = layout_shift_map_devs[i]->data;
-        settings_save_one(key, &data->active, sizeof(data->active));
+        int rc = settings_save_one(key, &data->active, sizeof(data->active));
+        if (rc == 0) {
+            data->dirty = false;
+        } else {
+            LOG_ERR("Failed to save layout shift state %s: %d", layout_shift_map_devs[i]->name,
+                    rc);
+        }
     }
     LOG_DBG("Saved layout shift states");
 }
@@ -147,7 +173,7 @@ static int layout_shift_settings_load_cb(const char *name, size_t len,
             if (rc >= 0) {
                 LOG_INF("Loaded layout shift state %s: %d", layout_shift_map_devs[i]->name, data->active);
             }
-            return MIN(rc, 0);
+            return rc < 0 ? rc : rc == sizeof(bool) ? 0 : -EINVAL;
         }
     }
     return -ENOENT;
@@ -173,14 +199,6 @@ static int layout_shift_map_init(const struct device *dev) {
             data->modifier_map[__builtin_ctz(from_mod)] = to_mod;
         }
     }
-
-#if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
-    static bool work_initialized = false;
-    if (!work_initialized) {
-        k_work_init_delayable(&layout_shift_save_work, layout_shift_save_work_handler);
-        work_initialized = true;
-    }
-#endif
 
     LOG_INF("Layout shift map %s initialized (%zu entries)", dev->name, config->entry_count);
     return 0;
@@ -209,3 +227,5 @@ static int layout_shift_map_init(const struct device *dev) {
                           POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, NULL);
 
 DT_INST_FOREACH_STATUS_OKAY(LAYOUT_SHIFT_MAP_INST)
+
+SYS_INIT(layout_shift_map_post_init, APPLICATION, 0);
