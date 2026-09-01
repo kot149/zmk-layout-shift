@@ -10,16 +10,35 @@
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
-static void sort_entries(struct layout_shift_map_entry *entries, size_t count) {
-    for (size_t i = 1; i < count; i++) {
-        struct layout_shift_map_entry tmp = entries[i];
-        uint32_t tmp_base = STRIP_MODS(tmp.from_keycode);
+static zmk_mod_flags_t mod_keycode_to_flag(uint32_t keycode) {
+    switch (STRIP_MODS(keycode)) {
+        case LEFT_CONTROL:  return MOD_LCTL;
+        case LEFT_SHIFT:    return MOD_LSFT;
+        case LEFT_ALT:      return MOD_LALT;
+        case LEFT_GUI:      return MOD_LGUI;
+        case RIGHT_CONTROL: return MOD_RCTL;
+        case RIGHT_SHIFT:   return MOD_RSFT;
+        case RIGHT_ALT:     return MOD_RALT;
+        case RIGHT_GUI:     return MOD_RGUI;
+        default:            return 0;
+    }
+}
+
+static void sort_indices(const struct layout_shift_map_config *config) {
+    for (size_t i = 0; i < config->entry_count; i++) {
+        config->sorted_indices[i] = i;
+    }
+
+    for (size_t i = 1; i < config->entry_count; i++) {
+        uint16_t tmp = config->sorted_indices[i];
+        uint32_t tmp_base = STRIP_MODS(config->mappings_raw[tmp * 3]);
         int j = (int)i - 1;
-        while (j >= 0 && STRIP_MODS(entries[j].from_keycode) > tmp_base) {
-            entries[j + 1] = entries[j];
+        while (j >= 0 &&
+               STRIP_MODS(config->mappings_raw[config->sorted_indices[j] * 3]) > tmp_base) {
+            config->sorted_indices[j + 1] = config->sorted_indices[j];
             j--;
         }
-        entries[j + 1] = tmp;
+        config->sorted_indices[j + 1] = tmp;
     }
 }
 
@@ -34,15 +53,10 @@ static void sort_devs_by_priority(void) {
     for (size_t i = 1; i < layout_shift_map_dev_count; i++) {
         const struct device *tmp = layout_shift_map_devs[i];
         const struct layout_shift_map_config *tmp_cfg = tmp->config;
-        const struct layout_shift_map_data *tmp_data = tmp->data;
         int j = (int)i - 1;
         while (j >= 0) {
             const struct layout_shift_map_config *j_cfg = layout_shift_map_devs[j]->config;
-            const struct layout_shift_map_data *j_data = layout_shift_map_devs[j]->data;
-            bool swap = (j_cfg->priority > tmp_cfg->priority) ||
-                        (j_cfg->priority == tmp_cfg->priority &&
-                         j_data->declaration_index > tmp_data->declaration_index);
-            if (!swap) {
+            if (j_cfg->priority <= tmp_cfg->priority) {
                 break;
             }
             layout_shift_map_devs[j + 1] = layout_shift_map_devs[j];
@@ -84,6 +98,24 @@ void layout_shift_map_set_active(const struct device *dev, bool active) {
 
 void layout_shift_map_toggle(const struct device *dev) {
     layout_shift_map_set_active(dev, !layout_shift_map_is_active(dev));
+}
+
+zmk_mod_flags_t layout_shift_map_translate_mods(const struct device *dev, zmk_mod_flags_t mods,
+                                                bool *changed) {
+    const struct layout_shift_map_data *data = dev->data;
+    zmk_mod_flags_t result = 0;
+
+    while (mods != 0) {
+        zmk_mod_flags_t bit = mods & -mods;
+        zmk_mod_flags_t mapped = data->modifier_map[__builtin_ctz(bit)];
+        result |= mapped != 0 ? mapped : bit;
+        if (mapped != 0 && mapped != bit && changed != NULL) {
+            *changed = true;
+        }
+        mods &= ~bit;
+    }
+
+    return result;
 }
 
 #if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
@@ -132,14 +164,15 @@ static int layout_shift_map_init(const struct device *dev) {
 
     data->active = false;
 
+    sort_indices(config);
     for (size_t i = 0; i < config->entry_count; i++) {
-        config->sorted_entries[i] = (struct layout_shift_map_entry){
-            .from_keycode = config->mappings_raw[i * 3],
-            .to_keycode = config->mappings_raw[i * 3 + 1],
-            .optional_mods = (zmk_mod_flags_t)config->mappings_raw[i * 3 + 2],
-        };
+        struct layout_shift_map_entry entry = layout_shift_map_entry(dev, i);
+        zmk_mod_flags_t from_mod = mod_keycode_to_flag(entry.from_keycode);
+        zmk_mod_flags_t to_mod = mod_keycode_to_flag(entry.to_keycode);
+        if (from_mod != 0 && to_mod != 0 && data->modifier_map[__builtin_ctz(from_mod)] == 0) {
+            data->modifier_map[__builtin_ctz(from_mod)] = to_mod;
+        }
     }
-    sort_entries(config->sorted_entries, config->entry_count);
 
 #if IS_ENABLED(CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE)
     static bool work_initialized = false;
@@ -155,21 +188,23 @@ static int layout_shift_map_init(const struct device *dev) {
 
 #define _RAW_ENTRY(node, prop, idx) DT_PROP_BY_IDX(node, prop, idx),
 
-#define LAYOUT_SHIFT_MAP_INST(n)                                                                   \
+#define LAYOUT_SHIFT_MAP_INST(n)                                                                  \
     static const uint32_t layout_map_raw_##n[] = {                                                 \
         DT_FOREACH_PROP_ELEM(DT_DRV_INST(n), mappings, _RAW_ENTRY)                                \
-    };                                                                                             \
-    static struct layout_shift_map_entry sorted_entries_##n[ARRAY_SIZE(layout_map_raw_##n) / 3];   \
+    };                                                                                            \
+    BUILD_ASSERT(ARRAY_SIZE(layout_map_raw_##n) / 3 <= UINT16_MAX,                                \
+                 "layout shift map supports at most UINT16_MAX entries");                        \
+    static uint16_t sorted_indices_##n[ARRAY_SIZE(layout_map_raw_##n) / 3];                        \
     static struct layout_shift_map_data layout_shift_map_data_##n = {                              \
         .declaration_index = n,                                                                    \
-    };                                                                                             \
-    static const struct layout_shift_map_config layout_shift_map_config_##n = {                    \
-        .mappings_raw = layout_map_raw_##n,                                                        \
-        .entry_count = ARRAY_SIZE(layout_map_raw_##n) / 3,                                         \
-        .sorted_entries = sorted_entries_##n,                                                       \
-        .priority = DT_INST_PROP_OR(n, priority, 0),                                                \
-    };                                                                                             \
-    DEVICE_DT_INST_DEFINE(n, layout_shift_map_init, NULL,                                          \
+    };                                                                                            \
+    static const struct layout_shift_map_config layout_shift_map_config_##n = {                   \
+        .mappings_raw = layout_map_raw_##n,                                                       \
+        .sorted_indices = sorted_indices_##n,                                                     \
+        .entry_count = ARRAY_SIZE(layout_map_raw_##n) / 3,                                        \
+        .priority = DT_INST_PROP_OR(n, priority, 0),                                              \
+    };                                                                                            \
+    DEVICE_DT_INST_DEFINE(n, layout_shift_map_init, NULL,                                         \
                           &layout_shift_map_data_##n, &layout_shift_map_config_##n,                \
                           POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, NULL);
 
