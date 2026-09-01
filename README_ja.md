@@ -19,6 +19,21 @@
 
 これらのトグルbehaviorは、`layout-maps`プロパティで制御対象のレイアウトを指定する必要があります（[使用方法](#使用方法)を参照）。複数のレイアウトマップを指定できます。
 
+## 設定
+
+| オプション | デフォルト | 説明 |
+|---|---:|---|
+| `CONFIG_LAYOUT_SHIFT_MAX_PRESSED_KEYS` | `16` | 正しいreleaseイベントとmodifier maskのために追跡する`&kpls`の最大同時押下数。小さくするとRAM使用量を削減できます。 |
+| `CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE` | `y` | 変更されたレイアウト状態を`CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE`ミリ秒後に保存します。再起動後に状態を維持する必要がある場合に有効化します。 |
+| `CONFIG_LAYOUT_SHIFT_DEBUG` | `n` | `CONFIG_LOG`が有効な場合に、キー単位の詳細なデバッグログを有効化します。 |
+
+例えば、最大同時押下数を8にしてレイアウト状態を保存しない場合は、次のように設定します。
+
+```conf
+CONFIG_LAYOUT_SHIFT_MAX_PRESSED_KEYS=8
+CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE=n
+```
+
 ## 利用可能なレイアウト一覧
 
 - **US -> JIS**: US配列前提のキーコードをJIS配列設定のOS向けに変換

@@ -19,6 +19,21 @@ This module defines the following behaviors:
 
 These toggle behaviors require the `layout-maps` property to specify which layout(s) to control (see [Usage](#usage)). Multiple layout maps can be specified.
 
+## Configuration
+
+| Option | Default | Description |
+|---|---:|---|
+| `CONFIG_LAYOUT_SHIFT_MAX_PRESSED_KEYS` | `16` | Maximum number of simultaneous `&kpls` presses tracked for correct release events and modifier masking. Lower values reduce RAM usage. |
+| `CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE` | `y` | Saves changed layout states after `CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE` milliseconds. Enable it when layout states need to survive a reboot. |
+| `CONFIG_LAYOUT_SHIFT_DEBUG` | `n` | Enables detailed per-key debug logging when `CONFIG_LOG` is enabled. |
+
+For example, to track up to eight simultaneous presses without saving layout states:
+
+```conf
+CONFIG_LAYOUT_SHIFT_MAX_PRESSED_KEYS=8
+CONFIG_LAYOUT_SHIFT_PERSISTENT_STATE=n
+```
+
 ## List of Pre-Defined Layouts
 
 - **US -> JIS**: Converts US keyboard keycodes for use on an OS configured with the JIS layout
