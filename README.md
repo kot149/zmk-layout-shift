@@ -19,6 +19,10 @@ This module defines the following behaviors:
 
 These toggle behaviors require the `layout-maps` property to specify which layout(s) to control (see [Usage](#usage)). Multiple layout maps can be specified.
 
+### Press/release tracking
+
+`&kpls` pairs each release with the original keycode and event position from its press. This keeps releases correct when a composite behavior invokes multiple `&kpls` bindings from one physical position, while still distinguishing the same keycode pressed at different positions.
+
 ## List of Pre-Defined Layouts
 
 - **US -> JIS**: Converts US keyboard keycodes for use on an OS configured with the JIS layout

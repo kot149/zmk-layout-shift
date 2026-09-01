@@ -19,6 +19,10 @@
 
 これらのトグルbehaviorは、`layout-maps`プロパティで制御対象のレイアウトを指定する必要があります（[使用方法](#使用方法)を参照）。複数のレイアウトマップを指定できます。
 
+### Press/releaseの追跡
+
+`&kpls`は、押下時の元のkeycodeとevent positionを使ってreleaseを対応付けます。これにより、1つの物理positionから複数の`&kpls`を呼び出すcomposite behaviorでも正しいキーをreleaseでき、異なるpositionから同じkeycodeを押した場合も区別できます。
+
 ## 利用可能なレイアウト一覧
 
 - **US -> JIS**: US配列前提のキーコードをJIS配列設定のOS向けに変換

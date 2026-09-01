@@ -8,6 +8,14 @@ config LAYOUT_SHIFT
 
 if LAYOUT_SHIFT
 
+config LAYOUT_SHIFT_MAX_PRESSED_KEYS
+    int "Maximum tracked layout shift key presses"
+    default 16
+    range 1 255
+    help
+      Maximum number of simultaneous layout shift key presses to track.
+      Lower values reduce RAM usage.
+
 config LAYOUT_SHIFT_PERSISTENT_STATE
     bool "Layout Shift Persistent State"
     default y

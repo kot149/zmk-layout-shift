@@ -128,170 +128,127 @@ static struct lookup_result lookup_mapped_keycode(uint32_t input_keycode) {
     return result;
 }
 
-// Storage for tracking key press/release mappings
-#define MAX_PRESSED_KEYS 16
-
 struct key_mapping_entry {
+    uint32_t position;
     uint32_t original_keycode;
     uint32_t mapped_keycode;
-    bool active;
 };
 
 struct behavior_layout_shift_key_press_data {
-    struct key_mapping_entry pressed_keys[MAX_PRESSED_KEYS];
+    struct key_mapping_entry pressed_keys[CONFIG_LAYOUT_SHIFT_MAX_PRESSED_KEYS];
+    zmk_mod_flags_t masked_mods[CONFIG_LAYOUT_SHIFT_MAX_PRESSED_KEYS];
     zmk_mod_flags_t currently_masked_mods;
+    uint8_t pressed_key_count;
 };
 
-struct behavior_layout_shift_key_press_config {};
-
-// Helper function to mask unwanted modifiers
-static void mask_unwanted_modifiers(struct behavior_layout_shift_key_press_data *data,
-                                   zmk_mod_flags_t optional_mods, zmk_mod_flags_t mapped_keycode,
-                                   zmk_mod_flags_t current_mods) {
-    // Get modifiers that are defined in the mapped keycode
+static zmk_mod_flags_t unwanted_modifiers(zmk_mod_flags_t optional_mods,
+                                          uint32_t mapped_keycode,
+                                          zmk_mod_flags_t current_mods) {
     zmk_mod_flags_t mapped_mods = SELECT_MODS(mapped_keycode);
-
-    // Calculate unwanted modifiers:
-    // - NOT in optional_modifiers (required modifiers)
-    // - NOT in mapped_keycode modifiers (not needed for output)
-    // - BUT in current explicit modifiers (currently active)
-    zmk_mod_flags_t required_mods = ~optional_mods;  // Modifiers that are NOT optional
-    zmk_mod_flags_t not_needed_mods = ~mapped_mods;  // Modifiers NOT in mapped keycode
-    zmk_mod_flags_t unwanted_mods = required_mods & not_needed_mods & current_mods;
-
-    if (unwanted_mods != 0 && unwanted_mods != data->currently_masked_mods) {
-        // Clear any previously masked modifiers
-        if (data->currently_masked_mods != 0) {
-            zmk_hid_masked_modifiers_clear();
-        }
-
-        // Apply new modifier mask
-        zmk_hid_masked_modifiers_set(unwanted_mods);
-        data->currently_masked_mods = unwanted_mods;
-
-        LOG_DBG("LAYOUT_SHIFT: Masking unwanted modifiers: %02X (optional: %02X, mapped: %02X, current: %02X)",
-                unwanted_mods, optional_mods, mapped_mods, current_mods);
-    }
+    return ~optional_mods & ~mapped_mods & current_mods;
 }
 
-// Helper function to clear modifier mask
-static void clear_modifier_mask(struct behavior_layout_shift_key_press_data *data) {
-    if (data->currently_masked_mods != 0) {
+static void update_modifier_mask(struct behavior_layout_shift_key_press_data *data) {
+    zmk_mod_flags_t masked_mods = 0;
+    for (uint8_t i = 0; i < data->pressed_key_count; i++) {
+        masked_mods |= data->masked_mods[i];
+    }
+    if (masked_mods == data->currently_masked_mods) {
+        return;
+    }
+
+    if (masked_mods == 0) {
         zmk_hid_masked_modifiers_clear();
-        LOG_DBG("LAYOUT_SHIFT: Cleared modifier mask: %02X", data->currently_masked_mods);
-        data->currently_masked_mods = 0;
+    } else {
+        zmk_hid_masked_modifiers_set(masked_mods);
     }
+    data->currently_masked_mods = masked_mods;
+    LOG_DBG("LAYOUT_SHIFT: Modifier mask set to %02X", masked_mods);
 }
 
-// Helper functions for key mapping storage
-static int store_key_mapping(struct behavior_layout_shift_key_press_data *data,
-                            uint32_t original_keycode, uint32_t mapped_keycode) {
-    for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
-        if (!data->pressed_keys[i].active) {
-            data->pressed_keys[i].original_keycode = original_keycode;
-            data->pressed_keys[i].mapped_keycode = mapped_keycode;
-            data->pressed_keys[i].active = true;
-            return 0;
-        }
+static int store_key_mapping(struct behavior_layout_shift_key_press_data *data, uint32_t position,
+                             uint32_t original_keycode, uint32_t mapped_keycode,
+                             zmk_mod_flags_t masked_mods) {
+    if (data->pressed_key_count >= CONFIG_LAYOUT_SHIFT_MAX_PRESSED_KEYS) {
+        LOG_WRN("LAYOUT_SHIFT: No free slots to store key mapping");
+        return -ENOMEM;
     }
-    LOG_WRN("LAYOUT_SHIFT: No free slots to store key mapping");
-    return -ENOMEM;
+
+    uint8_t index = data->pressed_key_count++;
+    data->pressed_keys[index] = (struct key_mapping_entry){
+        .position = position,
+        .original_keycode = original_keycode,
+        .mapped_keycode = mapped_keycode,
+    };
+    data->masked_mods[index] = masked_mods;
+    update_modifier_mask(data);
+    return 0;
 }
 
-static uint32_t get_stored_mapping(struct behavior_layout_shift_key_press_data *data,
-                                  uint32_t original_keycode) {
-    for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
-        if (data->pressed_keys[i].active &&
-            data->pressed_keys[i].original_keycode == original_keycode) {
-            return data->pressed_keys[i].mapped_keycode;
+static bool take_key_mapping(struct behavior_layout_shift_key_press_data *data, uint32_t position,
+                             uint32_t original_keycode, uint32_t *mapped_keycode) {
+    for (uint8_t i = 0; i < data->pressed_key_count; i++) {
+        if (data->pressed_keys[i].position != position ||
+            data->pressed_keys[i].original_keycode != original_keycode) {
+            continue;
         }
-    }
-    return 0; // Not found
-}
 
-static int remove_key_mapping(struct behavior_layout_shift_key_press_data *data,
-                             uint32_t original_keycode) {
-    for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
-        if (data->pressed_keys[i].active &&
-            data->pressed_keys[i].original_keycode == original_keycode) {
-            data->pressed_keys[i].active = false;
-            return 0;
-        }
+        *mapped_keycode = data->pressed_keys[i].mapped_keycode;
+        uint8_t last = --data->pressed_key_count;
+        data->pressed_keys[i] = data->pressed_keys[last];
+        data->masked_mods[i] = data->masked_mods[last];
+        update_modifier_mask(data);
+        return true;
     }
-    return -ENOENT;
+    return false;
 }
 
 static int on_layout_shift_key_press_binding_pressed(struct zmk_behavior_binding *binding,
-                                                    struct zmk_behavior_binding_event event) {
+                                                     struct zmk_behavior_binding_event event) {
     const struct device *dev = zmk_behavior_get_binding(binding->behavior_dev);
     struct behavior_layout_shift_key_press_data *data = dev->data;
-
     uint32_t original_keycode = binding->param1;
-    struct lookup_result lr = lookup_mapped_keycode(original_keycode);
+    struct lookup_result result = lookup_mapped_keycode(original_keycode);
+    zmk_mod_flags_t masked_mods = 0;
 
-    LOG_DBG("LAYOUT_SHIFT: Input keycode 0x%08X -> Mapped keycode 0x%08X", original_keycode, lr.keycode);
-
-    // If layout shift is active and mapping occurred, handle unwanted modifier masking
-    if (lr.matched) {
+    if (result.matched) {
         zmk_mod_flags_t current_mods = zmk_hid_get_explicit_mods();
-        zmk_mod_flags_t keycode_mods = SELECT_MODS(original_keycode);
-        zmk_mod_flags_t total_mods = current_mods | keycode_mods;
-
-        // Use the already found layout entry
-        mask_unwanted_modifiers(data, lr.matched_opt_mods, lr.keycode, total_mods);
+        zmk_mod_flags_t total_mods = current_mods | SELECT_MODS(original_keycode);
+        masked_mods = unwanted_modifiers(result.matched_opt_mods, result.keycode, total_mods);
     }
 
-    // Store the mapping for use during release
-    int ret = store_key_mapping(data, original_keycode, lr.keycode);
+    LOG_DBG("LAYOUT_SHIFT: Input keycode 0x%08X -> Mapped keycode 0x%08X",
+            original_keycode, result.keycode);
+
+    int ret = store_key_mapping(data, event.position, original_keycode, result.keycode, masked_mods);
     if (ret < 0) {
         LOG_ERR("LAYOUT_SHIFT: Failed to store key mapping: %d", ret);
     }
 
-    // Raise the mapped keycode event
-    return raise_zmk_keycode_state_changed_from_encoded(
-        lr.keycode,
-        true, // pressed
-        event.timestamp
-    );
+    return raise_zmk_keycode_state_changed_from_encoded(result.keycode, true, event.timestamp);
 }
 
 static int on_layout_shift_key_press_binding_released(struct zmk_behavior_binding *binding,
-                                                     struct zmk_behavior_binding_event event) {
+                                                      struct zmk_behavior_binding_event event) {
     const struct device *dev = zmk_behavior_get_binding(binding->behavior_dev);
     struct behavior_layout_shift_key_press_data *data = dev->data;
-
     uint32_t original_keycode = binding->param1;
     uint32_t mapped_keycode;
 
-    // Try to get the stored mapping first
-    uint32_t stored_mapping = get_stored_mapping(data, original_keycode);
-    if (stored_mapping != 0) {
-        mapped_keycode = stored_mapping;
-        LOG_DBG("LAYOUT_SHIFT: Using stored mapping for release 0x%08X -> 0x%08X",
-                original_keycode, mapped_keycode);
-
-        // Remove the mapping from storage
-        remove_key_mapping(data, original_keycode);
+    if (take_key_mapping(data, event.position, original_keycode, &mapped_keycode)) {
+        LOG_DBG(
+            "LAYOUT_SHIFT: Using stored mapping for release 0x%08X -> 0x%08X",
+            original_keycode, mapped_keycode);
     } else {
-        // Fall back to recalculating if no stored mapping found
-        struct lookup_result lr = lookup_mapped_keycode(original_keycode);
-        mapped_keycode = lr.keycode;
-        LOG_DBG("LAYOUT_SHIFT: No stored mapping found, recalculating 0x%08X -> 0x%08X",
-                original_keycode, mapped_keycode);
+        mapped_keycode = lookup_mapped_keycode(original_keycode).keycode;
+        LOG_DBG(
+            "LAYOUT_SHIFT: No stored mapping found, recalculating 0x%08X -> 0x%08X",
+            original_keycode, mapped_keycode);
     }
 
-    LOG_DBG("LAYOUT_SHIFT: Released input keycode 0x%08X -> Mapped keycode 0x%08X", original_keycode, mapped_keycode);
-
-    // Clear modifier mask when key is released
-    // This ensures that modifier masking is only active while layout-shifted keys are pressed
-    clear_modifier_mask(data);
-
-    // Release the mapped keycode
-    return raise_zmk_keycode_state_changed_from_encoded(
-        mapped_keycode,
-        false, // released
-        event.timestamp
-    );
+    LOG_DBG("LAYOUT_SHIFT: Released input keycode 0x%08X -> Mapped keycode 0x%08X",
+            original_keycode, mapped_keycode);
+    return raise_zmk_keycode_state_changed_from_encoded(mapped_keycode, false, event.timestamp);
 }
 
 #if IS_ENABLED(CONFIG_ZMK_BEHAVIOR_METADATA)
