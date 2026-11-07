@@ -1,0 +1,53 @@
+#include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/layout_shift.h>
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/kscan_mock.h>
+#include <layout_shift.dtsi>
+
+&kscan {
+    events = <
+        ZMK_MOCK_PRESS(0,1,10)
+        ZMK_MOCK_RELEASE(0,1,10)
+        ZMK_MOCK_PRESS(0,0,10)
+        ZMK_MOCK_RELEASE(0,0,10)
+    >;
+};
+
+/ {
+    test_map: test_map {
+        compatible = "zmk,layout-shift-map";
+        mappings = <
+            A B LAYOUT_SHIFT_OPTIONAL_ALL
+        >;
+    };
+
+    behaviors {
+        test_toggle: test_toggle {
+            compatible = "zmk,behavior-layout-shift-toggle";
+            #binding-cells = <0>;
+            toggle-mode = "on";
+            layout-maps = <&test_map>;
+        };
+
+        ht_bal: behavior_hold_tap_balanced {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            flavor = "balanced";
+            tapping-term-ms = <100>;
+            bindings = <&kpls>, <&kpls>;
+            hold-while-undecided;
+            hold-while-undecided-linger;
+        };
+    };
+
+    keymap {
+        compatible = "zmk,keymap";
+
+        default_layer {
+            bindings = <
+                &ht_bal LEFT_SHIFT A &test_toggle
+                &none &none
+            >;
+        };
+    };
+};

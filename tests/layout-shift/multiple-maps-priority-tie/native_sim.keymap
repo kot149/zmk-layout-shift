@@ -1,0 +1,33 @@
+#include <dt-bindings/zmk/keys.h>
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/kscan_mock.h>
+#include <layout_shift.dtsi>
+
+&tog_ls { layout-maps = <&layout_shift_map_us_to_jis &layout_shift_map_dvorak>; };
+
+/* Equal priorities -> fall back to global declaration order (dvorak first, then jis).
+ * EQUAL: dvorak EQUAL->RIGHT_BRACKET; jis RIGHT_BRACKET->BACKSLASH = 0x31. */
+&layout_shift_map_us_to_jis    { priority = <10>; };
+&layout_shift_map_dvorak { priority = <10>; };
+
+&kscan {
+    events = <
+        ZMK_MOCK_PRESS(0,0,10)
+        ZMK_MOCK_RELEASE(0,0,10)
+        ZMK_MOCK_PRESS(0,1,10)
+        ZMK_MOCK_RELEASE(0,1,10)
+    >;
+};
+
+/ {
+    keymap {
+        compatible = "zmk,keymap";
+
+        default_layer {
+            bindings = <
+                &tog_ls &kpls EQUAL
+                &none   &none
+            >;
+        };
+    };
+};
