@@ -1,0 +1,23 @@
+name: Upstream compatibility
+
+on:
+  schedule:
+    # Mon 09:00 JST.
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+    inputs:
+      module-ref:
+        description: Module branch.
+        type: string
+        default: v2
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      module-ref: ${{ inputs.module-ref || 'v2' }}
+      zmk-03-ref: v0.3-branch
+      zmk-main-ref: main
